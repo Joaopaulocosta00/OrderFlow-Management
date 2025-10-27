@@ -4,6 +4,7 @@
 Objetivo
 Desenvolver um sistema de software para controle de pedidos registrados por um usuário para clientes
 de uma empresa.
+
 Metas
 Compreender os requisitos especificados para o sistema de controle de pedidos. Definir uma equipe de
 até três acadêmicos para execução do projeto. Elaborar uma matriz de responsabilidades, designando a
