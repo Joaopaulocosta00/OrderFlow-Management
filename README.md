@@ -34,3 +34,39 @@ Critérios de Avaliação
 O resultado da avaliação deste projeto corresponderá à 4,0 pontos da média referente ao 2o bimestre*. Esta
 avaliação será realizada individualmente e ponderada de acordo com a matriz de responsabilidades
 definidas pela equipe.
+
+Estrutura final do projeto
+SistemaControlePedidos/
+│
+├── include/ ← cabeçalhos (.h)
+│ ├── cliente.h
+│ ├── produto.h
+│ ├── pedido.h
+│ ├── interface.h
+│ └── persistencia.h
+│
+├── src/ ← código-fonte (.c)
+│ ├── cliente.c
+│ ├── produto.c
+│ ├── pedido.c
+│ ├── interface.c
+│ ├── persistencia.c
+│ └── main.c
+OBJ_FILES Define os arquivos objeto gerados em build/
+$(EXEC) Define o nome do executável (com .exe no Windows)
+all Regra principal: compila tudo
+dirs Cria a pasta build se não existir
+run Compila e executa
+clean Remove tudo que foi compilado
+help Mostra a lista de comandos disponíveis
+Linha Função
+
+│
+├── data/ ← arquivos CSV
+│ ├── Clientes.csv
+│ ├── Produtos.csv
+│ └── Pedidos.csv
+│
+├── build/ ← gerado automaticamente
+│
+└── Makefile ← este arquivo
