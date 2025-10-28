@@ -33,3 +33,5 @@ O resultado da avaliação deste projeto corresponderá à 4,0 pontos da média 
 ---
 
 ## Estrutura de Diretórios
+
+SistemaControlePedidos/ │ ├── include/ ← cabeçalhos (.h) │ ├── cliente.h │ ├── produto.h │ ├── pedido.h │ ├── interface.h │ └── persistencia.h │ ├── src/ ← código-fonte (.c) │ ├── cliente.c │ ├── produto.c │ ├── pedido.c │ ├── interface.c │ ├── persistencia.c │ └── main.c │ ├── data/ ← arquivos CSV para persistência │ ├── Clientes.csv │ ├── Produtos.csv │ └── Pedidos.csv │ ├── build/ ← gerado automaticamente (arquivos objeto e executável) └── Makefile ← arquivo de automação da compilação
