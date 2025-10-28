@@ -26,10 +26,6 @@ O projeto está organizado em módulos que funcionarão como etapas. Cada módul
 * Diagrama de Estruturas de Dados (`structs`)
 * Diagrama de Estrutura Modular
 * Descrição requisitos de implementação
-
-## Critérios de Avaliação
-O resultado da avaliação deste projeto corresponderá à 4,0 pontos da média referente ao 2º bimestre. Esta avaliação será realizada individualmente e ponderada de acordo com a matriz de responsabilidades definidas pela equipe.
-
 ---
 
 ## Estrutura final do projeto
