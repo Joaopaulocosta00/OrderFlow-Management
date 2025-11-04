@@ -12,8 +12,7 @@ int codigoExiste(int codigoAVerificar) {
     // 1. Abre o arquivo para leitura
     arquivo = fopen("produtos.txt", "r");
     if (arquivo == NULL) {
-        // Se o arquivo não existir, significa que o código não está lá
-        // E não é um erro se for a primeira vez
+
         return 0; // Não existe
     }
 
@@ -41,7 +40,7 @@ int codigoExiste(int codigoAVerificar) {
 
 
 
-int novo_produto(int code, const char *nome, int qant){
+int novo_produto(int code, const char *nome, int valor, int quant){
     FILE *arquivo;
 
     // 1. Abrir o arquivo no modo "a" (append)
@@ -56,7 +55,7 @@ int novo_produto(int code, const char *nome, int qant){
     // 2. Escrever a nova linha no arquivo
     // Usamos fprintf para escrever no arquivo de forma formatada (como o printf)
     // Garantimos quebra de linha (\n) para o próximo registro
-    fprintf(arquivo, "%d,%s\n", code, nome);
+    fprintf(arquivo, "%d,%s\n", code,nome,valor,quant);
 
     // 3. Fechar o arquivo (MUITO IMPORTANTE!)
     fclose(arquivo);
@@ -73,6 +72,7 @@ int novo_produto(int code, const char *nome, int qant){
 
 int main() {
     int code,valor,quant;
+    int salvamento;
     char descricao[100];
 
 
@@ -106,10 +106,9 @@ int main() {
         printf("Descrição do produto : %s \n", descricao);
         printf("O valor do produto e: %d \n", valor);
         printf("A quantidade de produto e: %d \n", quant);
+
+        salvamento = novo_produto(code, descricao, valor, quant);
         
-
-
-    // B. Verificando um código que provavelmente não existe
 
 
 
