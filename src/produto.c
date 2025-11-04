@@ -5,34 +5,33 @@
 // Função para verificar se o código existe no arquivo
 int codigoExiste(int codigoAVerificar) {
     FILE *arquivo;
-    char linha[256]; // Buffer para ler a linha
+    char linha[256];
     int codigoLido;
-    int encontrado = 0; // Flag para indicar se achou
+    int encontrado = 0; 
 
-    // 1. Abre o arquivo para leitura
+    //abre o arquivo para leitura
     arquivo = fopen("produtos.txt", "r");
     if (arquivo == NULL) {
 
         return 0; // Não existe
     }
 
-    // 2. Loop para ler o arquivo linha por linha
+    // loop para ler o arquivo linha por linha
     while (fgets(linha, sizeof(linha), arquivo) != NULL) {
-        // 3. Tenta ler o primeiro inteiro (código) da linha
-        // O formato esperado é: inteiro, texto...
+    
+    
         if (sscanf(linha, "%d,", &codigoLido) == 1) {
-            // 4. Compara o código lido com o código procurado
+        // compara o código lido com o código procurado
             if (codigoLido == codigoAVerificar) {
                 encontrado = 1;
-                break; // Encontrou, pode sair do loop
+                break; 
             }
         }
     }
 
-    // 5. Fecha o arquivo
     fclose(arquivo);
 
-    return encontrado; // Retorna 1 se achou, 0 se não
+    return encontrado; 
 }
 
 
@@ -43,8 +42,6 @@ int codigoExiste(int codigoAVerificar) {
 int novo_produto(int code, const char *nome, int valor, int quant){
     FILE *arquivo;
 
-    // 1. Abrir o arquivo no modo "a" (append)
-    // Se não existir, ele cria. Se existir, ele adiciona no final.
     arquivo = fopen("produtos.txt", "a");
 
     if (arquivo == NULL) {
@@ -52,12 +49,8 @@ int novo_produto(int code, const char *nome, int valor, int quant){
         return; // Sai da função se houver erro
     }
 
-    // 2. Escrever a nova linha no arquivo
-    // Usamos fprintf para escrever no arquivo de forma formatada (como o printf)
-    // Garantimos quebra de linha (\n) para o próximo registro
     fprintf(arquivo, "%d,%s\n", code,nome,valor,quant);
 
-    // 3. Fechar o arquivo (MUITO IMPORTANTE!)
     fclose(arquivo);
 
     printf("✅ Produto salvo com sucesso: %d - %s\n", code, valor, quant);
@@ -79,12 +72,10 @@ int main() {
     printf("insira o codigo que deseja verificar se existe");
     scanf("%d", &code);
 
-    // A. Verificando um código que provavelmente existe
     if (codigoExiste(code)) {
         printf("O código %d JÁ existe.\n", code);
     } else {
         printf("O código %d não existe adicionando ao sistema.\n", code);
-        // *Se for inserir, você deve abrir o arquivo no modo "a" (append) aqui*
     }
     if (codigoExiste(code)) {
         printf("");
@@ -111,6 +102,9 @@ int main() {
         
 
 
+
+        
+///////////////////////////////////////////////
 
     return 0;
 }
