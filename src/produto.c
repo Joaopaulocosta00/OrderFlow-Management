@@ -39,7 +39,7 @@ int codigoExiste(int codigoAVerificar) {
 
 
 
-int novo_produto(int code, const char *nome, int valor, int quant){
+int novo_produto(int code,char descricao [], int valor, int quant){
     FILE *arquivo;
 
     arquivo = fopen("produtos.txt", "a");
@@ -49,19 +49,30 @@ int novo_produto(int code, const char *nome, int valor, int quant){
         return; // Sai da função se houver erro
     }
 
-    fprintf(arquivo, "%d,%s\n", code,nome,valor,quant);
+    fprintf(arquivo, "------------------------------------------------------------------------------------------\n"); 
+
+    fprintf(arquivo, "%d\n", code);        
+    fprintf(arquivo, "%s\n", descricao);   
+    fprintf(arquivo, "%d\n", valor);       
+    fprintf(arquivo, "%d\n", quant); 
+    
+    fprintf(arquivo, "------------------------------------------------------------------------------------------ \n"); 
 
     fclose(arquivo);
 
-    printf("✅ Produto salvo com sucesso: %d - %s\n", code, valor, quant);
+    printf("produto salvo com sucesso: %d - %s\n", code, valor, quant);
 }
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void limpar_buffer() {
+    int c = 0;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
 
-
+/////////////////////////////////////////////////////////////////////////////
 
 int main() {
     int code,valor,quant;
@@ -81,6 +92,8 @@ int main() {
         printf("");
     } else {
 
+        limpar_buffer();
+
         printf("Digita a descrição do produto");
         fgets(descricao, sizeof(descricao), stdin);
 
@@ -92,7 +105,7 @@ int main() {
 
         int salvar (novo_produto);
 
-        printf("Os seguintes dados foram salvados /n");
+        printf("Os seguintes dados foram salvados \n");
         printf("codigo de produto : %d \n", code);
         printf("Descrição do produto : %s \n", descricao);
         printf("O valor do produto e: %d \n", valor);
@@ -103,7 +116,7 @@ int main() {
 
 
 
-        
+
 ///////////////////////////////////////////////
 
     return 0;
