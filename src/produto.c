@@ -45,13 +45,13 @@ int novo_produto(int code,char descricao [], int valor, int quant){
     arquivo = fopen("produtos.txt", "a");
 
     if (arquivo == NULL) {
-        printf("🚨 Erro ao abrir ou criar o arquivo!\n");
+        printf("Erro ao abrir ou criar o arquivo!\n");
         return; // Sai da função se houver erro
     }
 
     fprintf(arquivo, "------------------------------------------------------------------------------------------\n"); 
 
-    fprintf(arquivo, "%d\n", code);        
+    fprintf(arquivo, "%d\n", code);
     fprintf(arquivo, "%s\n", descricao);   
     fprintf(arquivo, "%d\n", valor);       
     fprintf(arquivo, "%d\n", quant); 
@@ -75,7 +75,7 @@ void limpar_buffer() {
 /////////////////////////////////////////////////////////////////////////////
 
 int main() {
-    int code,valor,quant;
+    int code,valor,quant,resposta;
     int salvamento;
     char descricao[100];
 
@@ -103,6 +103,13 @@ int main() {
         printf("Quantos produtos tem no estoque");
         scanf("%d", &quant);}
 
+//--------------------------- confirmar cadastro ---------------
+
+        printf("salvar dados ? 0 sim e 1 nao");
+        scanf("%d"), &resposta;
+
+        if (resposta == 0){
+
         int salvar (novo_produto);
 
         printf("Os seguintes dados foram salvados \n");
@@ -111,12 +118,11 @@ int main() {
         printf("O valor do produto e: %d \n", valor);
         printf("A quantidade de produto e: %d \n", quant);
 
+        
+        }
+
         salvamento = novo_produto(code, descricao, valor, quant);
         
-
-
-
-
 ///////////////////////////////////////////////
 
     return 0;
