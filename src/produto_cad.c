@@ -1,6 +1,78 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "feature_produto.h"
+
+
+int modulo_novo_produto () {
+    int code,valor,quant,resposta;
+    int salvamento;
+    char descricao[100];
+    int salvar;
+
+    printf("insira o codigo do produto   :");
+    scanf("%d", &code);
+
+    if (codigoExiste(code)) {
+        printf("O código %d JÁ existe.\n", code);
+    } else {
+        printf("O código %d não existe adicionando ao sistema.\n", code);
+    }
+    if (codigoExiste(code)) {
+        printf("");
+    } else {
+
+        limpar_buffer();
+
+        printf("Digita a descrição do produto");
+        fgets(descricao, sizeof(descricao), stdin);
+
+        printf("Digita o valor do produto");
+        scanf("%d", &valor);
+
+        printf("Quantos produtos tem no estoque");
+        scanf("%d", &quant);}
+
+//--------------------------- confirmar cadastro ---------------
+
+        printf("salvar dados ? 0 sim e 1 nao");
+        scanf("%d"), &resposta;
+
+        if (resposta == 0){
+            
+     
+        (modulo_novo_produto());
+
+        printf("Os seguintes dados foram salvados \n");
+        printf("codigo de produto : %d \n", code);
+        printf("Descrição do produto : %s \n", descricao);
+        printf("O valor do produto e: %d \n", valor);
+        printf("A quantidade de produto e: %d \n", quant);
+
+
+        
+        } else {
+            printf("Os dados não foram salvos \n");
+
+            //////////////////////////////////////////////////////////////
+
+            printf("Deseja iniciar o cadastro novamente ? 0 sim e 1 nao");
+            scanf("%d", &resposta);
+
+
+            if (resposta == 0){
+                modulo_novo_produto();
+            } else {
+                printf("Encerrando o programa \n");
+            }
+        }
+
+        salvamento = novo_produto(code, descricao, valor, quant);
+        
+///////////////////////////////////////////////
+
+    return 0;
+}
 
 // Função para verificar se o código existe no arquivo
 int codigoExiste(int codigoAVerificar) {
@@ -74,56 +146,3 @@ void limpar_buffer() {
 
 /////////////////////////////////////////////////////////////////////////////
 
-int main() {
-    int code,valor,quant,resposta;
-    int salvamento;
-    char descricao[100];
-
-
-    printf("insira o codigo que deseja verificar se existe");
-    scanf("%d", &code);
-
-    if (codigoExiste(code)) {
-        printf("O código %d JÁ existe.\n", code);
-    } else {
-        printf("O código %d não existe adicionando ao sistema.\n", code);
-    }
-    if (codigoExiste(code)) {
-        printf("");
-    } else {
-
-        limpar_buffer();
-
-        printf("Digita a descrição do produto");
-        fgets(descricao, sizeof(descricao), stdin);
-
-        printf("Digita o valor do produto");
-        scanf("%d", &valor);
-
-        printf("Quantos produtos tem no estoque");
-        scanf("%d", &quant);}
-
-//--------------------------- confirmar cadastro ---------------
-
-        printf("salvar dados ? 0 sim e 1 nao");
-        scanf("%d"), &resposta;
-
-        if (resposta == 0){
-
-        int salvar (novo_produto);
-
-        printf("Os seguintes dados foram salvados \n");
-        printf("codigo de produto : %d \n", code);
-        printf("Descrição do produto : %s \n", descricao);
-        printf("O valor do produto e: %d \n", valor);
-        printf("A quantidade de produto e: %d \n", quant);
-
-        
-        }
-
-        salvamento = novo_produto(code, descricao, valor, quant);
-        
-///////////////////////////////////////////////
-
-    return 0;
-}

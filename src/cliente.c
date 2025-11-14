@@ -2,11 +2,13 @@
 #include <string.h>
 
 struct Cliente {
+    int id;
     char nome[50];
     char endereco[100];
     char telefone[15];
     char documento[20]; // CPF ou CNPJ (apenas digitos)
     char tipo; // 'F' = CPF, 'J' = CNPJ
+    char email[50];
 };
 //Funcao para cadastrar cliente
 int cadastrarCliente(char clientes[][20], int numClientes, char codigo[]) {   // clientes[][]-Lista de clientes, numClientes-número de clientes cadastrados, codigo- Código do cliente
@@ -101,39 +103,73 @@ int main() {
     if (scanf(" %c", &tipo) != 1) return 0; // note o espaco antes de %c para pular whitespace
 
     if (tipo == 'F' || tipo == 'f') {
+        //Ler e validar CPF em loop
+        do{
         printf("Digite o CPF (apenas numeros): ");
-        if (scanf("%31s", cadastro) != 1) return 0;
-        if (validarCPF(cadastro)) {
-            printf("CPF valido!\n");
-        } else {
-            printf("CPF invalido!\n");
+        if (scanf("%31s", cadastro) != 1) return 0; 
+        if(!validarCPF(cadastro)) {
+            printf("CPF invalido! Tente novamente.\n");
         }
+    } while(!validarCPF(cadastro));
+        printf("CPF valido!\n");
+        //gravar documento e tipo
+        strcpy(c.documento, cadastro);
+        c.tipo = tipo;
         // Coleta outros dados do cliente
         printf("Digite o nome: ");
         scanf(" %[^\n]", c.nome);
+        do {
         printf("Digite o numero de telefone: ");
         scanf(" %[^\n]", c.telefone);
-
+        if(!verificarTelefone(c.telefone)) {
+            printf("Telefone invalido! Tente novamente.\n");
+        }
+    } while(!verificarTelefone(c.telefone));
+        printf("Telefone valido!\n");
+        
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     } else if (tipo == 'J' || tipo == 'j') {
+        do{
         printf("Digite o CNPJ (apenas numeros): ");
         if (scanf("%31s", cadastro) != 1) return 0;
-        if (validarCNPJ(cadastro)) {
-            printf("CNPJ valido!\n");
-        } else {
-            printf("CNPJ invalido!\n");
+         if(!validarCNPJ(cadastro)) {
+            printf("CNPJ invalido! Tente novamente. \n");
         }
+    } while(!validarCNPJ(cadastro));
+        printf("CNPJ valido!\n");
         //Razão social e o numero de contato
         printf("Digite o nome da empresa: ");
         scanf(" %[^\n]", c.nome);
+        do {
         printf("Digite o numero de telefone: ");
         scanf(" %[^\n]", c.telefone);
-    } else {
-        printf("Opcao invalida!\n");
-    }
-    printf("Digite o endereco: ");
-    scanf(" %[^\n]", c.endereco);
-
-
-    printf("Cadastro concluido:\nNome: %s\nTelefone: %s\nDocumento: %s\n", c.nome, c.telefone, cadastro);
+        if(!verificarTelefone(c.telefone)) {
+            printf("Telefone invalido! Tente novamente.\n");
+        }
+    } while(!verificarTelefone(c.telefone));
+        printf("Telefone valido!\n");}
+//////////////////////////////////////////////////////////////////////
+// Endereço do cliente - Rua , Setor , Cidade , Estado 
+        printf("Digite o endereco: ");
+        scanf(" %[^\n]", c.endereco);
+// Email do cliente
+  do{
+    printf("Digite o email: ");
+    scanf(" %[^\n]", c.email);
+    if(!validarEmail(c.email)) {
+        printf("Email invalido! Tente novamente.\n"); }
+       } while (!validarEmail(c.email));
+        printf("Email valido!\n");
+  
+///////////////////////////////////////////////////////////////////////////////////////////////
+// Cliente cadastrado com sucesso
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+    printf("\n--- Dados do Cliente ---\n");
+    printf("Tipo: %s\n", (c.tipo == 'F') ? "Pessoa fisica (CPF)" : "Pessoa juridica (CNPJ)");
+    printf("Documento: %s\n", cadastro);
+    printf("Nome: %s\n", c.nome);
+    printf("Telefone: %s\n", c.telefone);
+    printf("Endereco: %s\n", c.endereco);
+    printf("Email: %s\n", c.email);
     return 0;
 }
