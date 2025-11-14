@@ -1,22 +1,19 @@
-# Compilador
 CC = gcc
+CFLAGS = -Wall -Wextra -g -I../include
+LDFLAGS = -lncurses
 
-# Opções de compilação
-CFLAGS = -Wall -Wextra -g -Iinclude
-
-# Lista de todos os arquivos .c do projeto
 SRC = main.c persistencia.c produto_apa.c modulo_produto.c produto_cad.c pedido.c interface.c cliente.c
+OBJ = $(SRC:.c=.o)
 
-# Arquivo de saída
 OUT = output/main
 
-# Regra padrão
 all: $(OUT)
 
-# Como gerar o executável
-$(OUT): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
+$(OUT): $(OBJ)
+	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $(OUT)
 
-# Limpeza (remove o executável)
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(OUT)
+	rm -f *.o $(OUT)

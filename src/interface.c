@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <ncurses.h>
 #include <string.h>
+extern Pedido pedidos[100];
+
 
 #define MAX_PEDIDOS 100
 #define MAX_NOME 50
@@ -50,7 +52,7 @@ void listarPedidos() {
     getch();
 }
 
-int main() {
+int opcao() {
     int opcao;
 
     initscr();

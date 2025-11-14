@@ -134,7 +134,7 @@ void cadastrar_pedido(WINDOW *win) {
     wgetch(win);
 }
 
-int main() {
+int teste_make() {
     initscr();
     noecho();
     cbreak();

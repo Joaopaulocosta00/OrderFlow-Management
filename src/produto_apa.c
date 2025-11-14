@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/feature_produto.h"
 
 // Definições
 #define NOME_ARQUIVO "produtos.txt"

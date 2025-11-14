@@ -1,7 +1,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "feature_produto.h"
+#include "../include/feature_produto.h"
+
+
 
 
 int modulo_novo_produto () {

@@ -93,7 +93,7 @@ int validarEmail(const char *email) {
 }
 
 // Programa principal
-int main() {
+int teste() {
     struct Cliente c;
     char cadastro[32];
     char tipo;
