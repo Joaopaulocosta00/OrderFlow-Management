@@ -79,20 +79,7 @@ int verificarTelefone(const char *telefone) {
     return 1; // telefone valido
 }
 
-// Funcao para validar email
-int validarEmail(const char *email) {
-    int atCount = 0; // Contador de ocorrências do caractere '@'
-    int dotCount = 0; // Contador de ocorrências do caractere '.'
-    int i;  // Variável de iteração
-    int len = strlen(email); // Calcula o tamanho da string 'email'
-    for (i = 0; i < len; i++) { // perorre por cada caractere da string
-        if (email[i] == '@') atCount++;
-        if (email[i] == '.') dotCount++;
-    }
-    return (atCount == 1 && dotCount >= 1); // deve ter exatamente um '@' e pelo menos um '.'
-}
 
-// Programa principal
 int main() {
     struct Cliente c;
     char cadastro[32];
@@ -101,7 +88,7 @@ int main() {
     int numClientes = 0;
     char codigo;
     int existe=0;
-    /*printf("Digite o codigo do cliente: ");
+    printf("Digite o codigo do cliente: ");
     if (scanf(" %c", &codigo) != 1) return 0;
     existe = cadastrarCliente(clientes, numClientes, &codigo);
     if (existe) {
@@ -111,8 +98,7 @@ int main() {
         strcpy(clientes[numClientes], &codigo);
         numClientes++;
         printf("Cliente cadastrado com sucesso!\n");
-    }*/
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    }
     printf("Digite F para pessoa fisica (CPF) ou J para pessoa juridica (CNPJ): ");
     if (scanf(" %c", &tipo) != 1) return 0; // note o espaco antes de %c para pular whitespace
 
