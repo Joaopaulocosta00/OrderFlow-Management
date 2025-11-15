@@ -172,7 +172,7 @@ void listarClientes(const char clientes[][20], int numClientes) {
     }
 }
 // Programa principal
-int main() {
+int codigoPrincipal() {
     struct Cliente c;
     char cadastro[32];
     char tipo;
