@@ -128,10 +128,20 @@ void cadastrar_pedido(WINDOW *win) {
         wgetch(win);
     }
 
-    // Salva pedido
-    pedidos[num_pedidos++] = novo;
-    mostrar_msg(win, "Pedido cadastrado com sucesso!");
+    // Salva pedido em memória
+pedidos[num_pedidos++] = novo;
+
+// Gravar no arquivo binário
+FILE *arq = fopen("pedidos.dat", "ab");
+if (arq == NULL) {
+    mostrar_msg(win, "Erro ao abrir arquivo pedidos.dat!");
     wgetch(win);
+} else {
+    fwrite(&novo, sizeof(Pedido), 1, arq);
+    fclose(arq);
+    mostrar_msg(win, "Pedido cadastrado e salvo em pedidos.dat!");
+    wgetch(win);
+}
 }
 
 int main() {
