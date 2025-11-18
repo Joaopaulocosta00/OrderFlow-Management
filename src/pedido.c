@@ -2,165 +2,220 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Simulações de "bancos de dados"
-#define MAX_PEDIDOS 10
-#define MAX_CLIENTES 5
-#define MAX_PRODUTOS 5
+#define ARQ_CLIENTES "clientes.dat"
+#define ARQ_PRODUTOS "produtos.dat"
+#define ARQ_PEDIDOS "pedidos.dat"
+#define ARQ_ITENS "itenspedido.dat"
+
+// ========================= ESTRUTURAS =========================
+typedef struct {
+    int id;
+    char nome[100];
+    char endereco[200];
+    char telefone[20];
+} Cliente;
 
 typedef struct {
-    int codigo;
-    int cliente;
-    int produtos[10];
-    int num_produtos;
+    int id;
+    char descricao[100];
+    double preco;
+    int estoque;
+} Produto;
+
+typedef struct {
+    int id;
+    int clienteId;
+    char data[11];
+    double total;
 } Pedido;
 
-Pedido pedidos[MAX_PEDIDOS];
-int num_pedidos = 0;
+typedef struct {
+    int pedidoId;
+    int produtoId;
+    int quantidade;
+    double subtotal;
+} ItemPedido;
 
-int clientes[MAX_CLIENTES] = {100, 101, 102, 200, 201};
-int produtos[MAX_PRODUTOS] = {10, 11, 12, 20, 21};
+// ========================= FUNÇÕES AUXILIARES =========================
+int cliente_existe(int id) {
+    FILE *f = fopen(ARQ_CLIENTES, "rb");
+    if (!f) return 0;
 
-// Funções auxiliares de verificação
-int pedido_existe(int codigo) {
-    for (int i = 0; i < num_pedidos; i++)
-        if (pedidos[i].codigo == codigo)
-            return 1;
+    Cliente c;
+    while (fread(&c, sizeof(Cliente), 1, f))
+        if (c.id == id) { fclose(f); return 1; }
+
+    fclose(f);
     return 0;
 }
 
-int cliente_existe(int codigo) {
-    for (int i = 0; i < MAX_CLIENTES; i++)
-        if (clientes[i] == codigo)
+int produto_existe(int id, Produto *out) {
+    FILE *f = fopen(ARQ_PRODUTOS, "rb");
+    if (!f) return 0;
+
+    Produto p;
+    while (fread(&p, sizeof(Produto), 1, f)) {
+        if (p.id == id) {
+            if (out) *out = p;
+            fclose(f);
             return 1;
+        }
+    }
+    fclose(f);
     return 0;
 }
 
-int produto_existe(int codigo) {
-    for (int i = 0; i < MAX_PRODUTOS; i++)
-        if (produtos[i] == codigo)
-            return 1;
+int pedido_existe(int id) {
+    FILE *f = fopen(ARQ_PEDIDOS, "rb");
+    if (!f) return 0;
+
+    Pedido p;
+    while (fread(&p, sizeof(Pedido), 1, f))
+        if (p.id == id) { fclose(f); return 1; }
+
+    fclose(f);
     return 0;
 }
 
-void mostrar_msg(WINDOW *win, const char *msg) {
-    int y, x;
-    getmaxyx(win, y, x);
-    mvwprintw(win, y - 2, 2, "Mensagem: %-60s", msg);
-    wrefresh(win);
-}
-
-// Função principal de cadastro de pedido
+// ========================= CADASTRAR PEDIDO =========================
 void cadastrar_pedido(WINDOW *win) {
-    int codigo_pedido, codigo_cliente, codigo_produto;
     char entrada[20];
-    Pedido novo;
+    Pedido ped;
+    int codigo_produto;
+    Produto prod;
+    int quantidade;
+    double total = 0;
 
-    // Entrada do código do pedido
+    // -------- 1. Ler código do pedido --------
     while (1) {
         werase(win);
         box(win, 0, 0);
         mvwprintw(win, 1, 2, "=== Cadastro de Pedido ===");
-        mvwprintw(win, 3, 2, "Codigo do Pedido: ");
+        mvwprintw(win, 3, 2, "Código do Pedido: ");
         wrefresh(win);
 
         echo();
         mvwgetnstr(win, 3, 22, entrada, 10);
         noecho();
-        codigo_pedido = atoi(entrada);
+        ped.id = atoi(entrada);
 
-        if (pedido_existe(codigo_pedido)) {
-            mostrar_msg(win, "Erro: Codigo de pedido ja existe!");
-            wgetch(win);
-            continue; // volta para o campo código
-        }
-        novo.codigo = codigo_pedido;
-        break;
-    }
-
-    // Entrada do código do cliente
-    while (1) {
-        werase(win);
-        box(win, 0, 0);
-        mvwprintw(win, 1, 2, "=== Cadastro de Pedido ===");
-        mvwprintw(win, 3, 2, "Codigo do Pedido: %d", novo.codigo);
-        mvwprintw(win, 5, 2, "Codigo do Cliente: ");
-        wrefresh(win);
-
-        echo();
-        mvwgetnstr(win, 5, 23, entrada, 10);
-        noecho();
-        codigo_cliente = atoi(entrada);
-
-        if (!cliente_existe(codigo_cliente)) {
-            mostrar_msg(win, "Erro: Cliente nao existe!");
+        if (pedido_existe(ped.id)) {
+            mvwprintw(win, 10, 2, "ERRO: Pedido já existe!");
             wgetch(win);
             continue;
         }
-        novo.cliente = codigo_cliente;
         break;
     }
 
-    // Cadastrar produtos
-    novo.num_produtos = 0;
+    // -------- 2. Ler cliente --------
     while (1) {
         werase(win);
         box(win, 0, 0);
         mvwprintw(win, 1, 2, "=== Cadastro de Pedido ===");
-        mvwprintw(win, 3, 2, "Pedido: %d | Cliente: %d", novo.codigo, novo.cliente);
-        mvwprintw(win, 5, 2, "Informe codigo do produto (0 para finalizar): ");
+        mvwprintw(win, 3, 2, "Código do Pedido: %d", ped.id);
+        mvwprintw(win, 5, 2, "Código do Cliente: ");
         wrefresh(win);
 
         echo();
-        mvwgetnstr(win, 5, 48, entrada, 10);
+        mvwgetnstr(win, 5, 22, entrada, 10);
+        noecho();
+        ped.clienteId = atoi(entrada);
+
+        if (!cliente_existe(ped.clienteId)) {
+            mvwprintw(win, 10, 2, "ERRO: Cliente não existe!");
+            wgetch(win);
+            continue;
+        }
+        break;
+    }
+
+    // -------- 3. Cadastrar itens --------
+    FILE *fItens = fopen(ARQ_ITENS, "ab");
+
+    while (1) {
+        werase(win);
+        box(win, 0, 0);
+        mvwprintw(win, 1, 2, "=== Cadastro de Itens ===");
+        mvwprintw(win, 3, 2, "Pedido: %d  Cliente: %d", ped.id, ped.clienteId);
+        mvwprintw(win, 5, 2, "Código do produto (0 para finalizar): ");
+        wrefresh(win);
+
+        echo();
+        mvwgetnstr(win, 5, 42, entrada, 10);
         noecho();
         codigo_produto = atoi(entrada);
 
         if (codigo_produto == 0) break;
 
-        if (!produto_existe(codigo_produto)) {
-            mostrar_msg(win, "Erro: Produto nao encontrado!");
+        if (!produto_existe(codigo_produto, &prod)) {
+            mvwprintw(win, 10, 2, "ERRO: Produto não existe!");
             wgetch(win);
             continue;
         }
 
-        novo.produtos[novo.num_produtos++] = codigo_produto;
-        mostrar_msg(win, "Produto adicionado com sucesso!");
+        mvwprintw(win, 7, 2, "Quantidade: ");
+        echo();
+        mvwgetnstr(win, 7, 14, entrada, 10);
+        noecho();
+        quantidade = atoi(entrada);
+
+        ItemPedido item;
+        item.pedidoId = ped.id;
+        item.produtoId = codigo_produto;
+        item.quantidade = quantidade;
+        item.subtotal = quantidade * prod.preco;
+
+        fwrite(&item, sizeof(ItemPedido), 1, fItens);
+        total += item.subtotal;
+
+        mvwprintw(win, 10, 2, "Item adicionado!");
         wgetch(win);
     }
 
-    // Salva pedido
-    pedidos[num_pedidos++] = novo;
-    mostrar_msg(win, "Pedido cadastrado com sucesso!");
+    fclose(fItens);
+
+    // -------- 4. Salvar pedido --------
+    strcpy(ped.data, "01/01/2025"); // padrão
+    ped.total = total;
+
+    FILE *fPed = fopen(ARQ_PEDIDOS, "ab");
+    fwrite(&ped, sizeof(Pedido), 1, fPed);
+    fclose(fPed);
+
+    werase(win);
+    box(win, 0, 0);
+    mvwprintw(win, 5, 2, "Pedido cadastrado com sucesso!");
+    mvwprintw(win, 7, 2, "Total: %.2f", total);
+    wrefresh(win);
     wgetch(win);
 }
 
+// ========================= MENU PRINCIPAL =========================
 int main() {
     initscr();
-    noecho();
     cbreak();
+    noecho();
 
-    WINDOW *janela = newwin(15, 70, 3, 5);
-    box(janela, 0, 0);
+    WINDOW *win = newwin(20, 70, 2, 5);
+    box(win, 0, 0);
 
-    int opcao;
-    while (1) {
-        werase(janela);
-        box(janela, 0, 0);
-        mvwprintw(janela, 1, 2, "=== Sistema de Pedidos ===");
-        mvwprintw(janela, 3, 4, "1 - Cadastrar Pedido");
-        mvwprintw(janela, 4, 4, "2 - Sair");
-        mvwprintw(janela, 6, 4, "Opcao: ");
-        wrefresh(janela);
+    int op;
+    do {
+        werase(win);
+        box(win, 0, 0);
+        mvwprintw(win, 1, 2, "=== MÓDULO PEDIDOS ===");
+        mvwprintw(win, 3, 2, "1 - Cadastrar Pedido");
+        mvwprintw(win, 4, 2, "2 - Sair");
+        mvwprintw(win, 6, 2, "Opção: ");
+        wrefresh(win);
 
         echo();
-        wscanw(janela, "%d", &opcao);
+        wscanw(win, "%d", &op);
         noecho();
 
-        if (opcao == 1)
-            cadastrar_pedido(janela);
-        else if (opcao == 2)
-            break;
-    }
+        if (op == 1) cadastrar_pedido(win);
+
+    } while (op != 2);
 
     endwin();
     return 0;
