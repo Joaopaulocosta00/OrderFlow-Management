@@ -234,6 +234,9 @@ void cadastrar_pedido(WINDOW *w) {
             pausa(w);
             continue;
         }
+    }
+    fclose(it);
+    fclose(tmp2);
 
         // gravar item
         ItemPedido it;
