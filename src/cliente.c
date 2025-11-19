@@ -29,6 +29,14 @@ int cadastrarCliente(struct Cliente clientes[], int *numClientes, struct Cliente
     (*numClientes)++;
     return 0;
 }
+//Funcao para validar codigo com numeros
+int validarCodigo(const char *codigo) {
+    if (strlen(codigo) == 0) return 0;
+    for (int i = 0; i< strlen(codigo); i++) {
+        if (!isdigit((unsigned char)codigo[i])) return 0;
+    }
+    return 1;
+}
 //Funcao para validar CPF
 int validarCPF(const char *cpf) {
     int i, j, digito1 = 0, digito2 = 0;
@@ -125,7 +133,7 @@ int salvarCliente(const char *codigo, const char *nome, const char *endereco, co
     fprintf(arquivo, "Codigo: %s\n", codigo);
     fprintf(arquivo, "Nome: %s\n", nome);
     fprintf(arquivo, "Tipo: %s\n", tipo);
-    if (strcmp(tipo, "Pessoa fisica (CPF)") == 0) {
+    if (strcmp(tipo, "CPF") == 0) {
         fprintf(arquivo, "CPF: %s\n", cpf);
     } else {
         fprintf(arquivo, "CNPJ: %s\n", cnpj);
@@ -163,6 +171,29 @@ int removerCliente(struct Cliente clientes[], int *numClientes, const char codig
         clientes[i] = clientes[i + 1];
     }
     (*numClientes)--;
+    // Remove do arquivo - reescreve o arquivo sem o cliente deletado
+    FILE *arq = fopen(ARQUIVO, "w");
+    if (arq == NULL) {
+        printf("Erro ao atualizar arquivo.\n");
+        return -6;
+    }
+    
+    for (int i = 0; i < *numClientes; i++) {
+        fprintf(arq, "---------Dados do Cliente---------\n");
+        fprintf(arq, "Codigo: %s\n", clientes[i].codigo);
+        fprintf(arq, "Nome: %s\n", clientes[i].nome);
+        fprintf(arq, "Tipo: %s\n", (clientes[i].tipo == 'F') ? "CPF" : "CNPJ");
+        if (clientes[i].tipo == 'F') {
+            fprintf(arq, "CPF: %s\n", clientes[i].documento);
+        } else {
+            fprintf(arq, "CNPJ: %s\n", clientes[i].documento);
+        }
+        fprintf(arq, "Telefone: %s\n", clientes[i].telefone);
+        fprintf(arq, "Endereco: %s\n", clientes[i].endereco);
+        fprintf(arq, "Email: %s\n", clientes[i].email);
+        fprintf(arq, "--------------------------\n\n");
+    }
+    fclose(arq);
     return 0;
 }
 //Funcao para listar todos os clientes
@@ -245,19 +276,28 @@ int codigoPrincipal() {
         //Cadastrar cliente
         if(opcao == 'C' || opcao == 'c') {
            memset(&c, 0, sizeof(c)); // Zera a struct Cliente  // para evitar lixo de memória
-            do {
-                printf("Codigo: ");
-                if (scanf("%19s", c.codigo) != 1) return 0;
+            while (1) {
+                printf("Codigo (somente numeros, 0 para cancelar): ");
+                if (scanf("%19s", c.codigo) != 1) break;
+        
+                if (strcmp(c.codigo, "0") == 0) { 
+                    printf("Operacao cancelada.\n"); break; } 
+                if(!validarCodigo(c.codigo)){
+                    printf("Codigo invalido. Use apenas numeros.\n");
+                    continue;
+                }
                 resultado = cadastrarCliente(clientes, &numClientes, c);
-                if (resultado == 1) printf("Codigo ja existe.\n");
-            } while (resultado != 0);
+              if(resultado == 1){
+                printf("Codigo ja existe.\n"); 
+                continue; 
+              } 
 
             //Tipo de cliente F ou J
             do{
-    printf(" F=  pessoa fisica (CPF) ou J=pessoa juridica (CNPJ): ");
-     scanf(" %c", &tipo);
+                    printf(" F=  pessoa fisica (CPF) ou J=pessoa juridica (CNPJ): ");
+                    scanf(" %c", &tipo);
             } while (tipo != 'F' && tipo != 'f' && tipo != 'J' && tipo != 'j');
-            if (tipo == 'F' || tipo == 'f') {
+                if (tipo == 'F' || tipo == 'f') {
                 do {
                     printf("CPF (11 digitos, somente numeros): ");
                     scanf("%31s", cadastro);
@@ -305,69 +345,92 @@ printf("\n--- Dados do Cliente ---\n");
                          (c.tipo == 'J') ? c.documento : "",
                          (c.tipo == 'F') ? "CPF" : "CNPJ",
                          c.email);
-        }
+    }   
+}
+
         //Consultar cliente
         else if(opcao == 'O' || opcao == 'o') {
-            do{
-            printf("Codigo: ");
-            scanf("%19s", codigo);
-            resultado = consultarCliente(clientes, numClientes, codigo);
-            
-            if (resultado == -7) {
-                printf("Cliente nao encontrado na memoria.\n");
-                printf("Procurando no arquivo...\n\n");
-                
+            while (1) {
+                printf("Codigo (somente numeros, 0 para cancelar): ");
+                if (scanf("%19s", codigo) != 1) break;
+                if (strcmp(codigo, "0") == 0) { printf("Operacao cancelada.\n"); break; }
+                if (!validarCodigo(codigo)) {
+                    printf("Codigo invalido. Use apenas numeros.\n");
+                    continue;
+                }
+
+                resultado = consultarCliente(clientes, numClientes, codigo);
+
+                if (resultado != -7) {
+                    printf("Cliente encontrado na memoria.\n");
+                    break;
+                }
+
+                printf("Cliente nao encontrado na memoria.\nProcurando no arquivo...\n\n");
+
                 // Buscar no arquivo
                 FILE *arq = fopen(ARQUIVO, "r");
                 if (arq == NULL) {
                     printf("Arquivo nao encontrado.\n");
+                    break;
                 } else {
                     char linha[256];
                     int encontrou = 0;
-                    
+
                     while (fgets(linha, sizeof(linha), arq) != NULL) {
-                        // Procura por "Codigo: XXXX"
                         if (strstr(linha, "Codigo:") != NULL && strstr(linha, codigo) != NULL) {
                             printf("\n=== Dados do Cliente (do arquivo) ===\n");
                             printf("%s", linha); // Imprime a linha "Codigo: XXXX"
                             encontrou = 1;
-                            
+
                             // Imprime as proximas linhas ate o separador
                             while (fgets(linha, sizeof(linha), arq) != NULL) {
-                                if (strcmp(linha, "--------------------------\n") == 0) {
-                                    break;
-                                }
+                                if (strcmp(linha, "--------------------------\n") == 0) break;
                                 printf("%s", linha);
-                            
                             }
                             break;
                         }
                     }
                     fclose(arq);
-                    
+
                     if (!encontrou) {
                         printf("Cliente nao encontrado no arquivo.\n");
                     }
+                    break;
                 }
-            } else {
-                printf("Cliente encontrado na memoria.\n");
             }
-             } while(resultado!=0);
         }
-        else if(opcao == 'R' || opcao == 'r'){
-            do{
-            printf("Codigo: ");
-            scanf("%19s", codigo);
-            resultado = removerCliente(clientes, &numClientes, codigo);  
-            if (resultado == -8)
-             printf("Nao encontrado.\n");
-             else printf("Removido.\n");
-            } while(resultado!=0);
-            
+//Remover
+          else if(opcao == 'R' || opcao == 'r'){
+            while (1) {
+                printf("Codigo (0 para cancelar): ");
+                if (scanf("%19s", codigo) != 1) break;
+                if (strcmp(codigo, "0") == 0) { 
+                    printf("Operacao cancelada.\n"); break; }
+                if (!validarCodigo(codigo)) {
+                    printf("Codigo invalido. Use apenas numeros.\n");
+                    continue;
+                }
+                resultado = removerCliente(clientes, &numClientes, codigo);
+                if (resultado == -8) {
+                    printf("Nao encontrado.\n");
+                    // pergunta se quer tentar novamente ou cancelar
+                    printf("Deseja tentar outro codigo? (S/N): ");
+                    char resp;
+                    scanf(" %c", &resp);
+                    if (resp == 'S' || resp == 's') continue;
+                    else break;
+                } else {
+                    printf("Removido.\n");
+                    break;
+                }
+            }
         }
+//Listar clientes
         else if(opcao == 'L' || opcao == 'l'){
             listarClientes(clientes, numClientes);  
         }
+// Sair
         else if(opcao == '0'){
             printf("Saindo.\n");
             break;
