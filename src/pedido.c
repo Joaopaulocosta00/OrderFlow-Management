@@ -1,397 +1,480 @@
-/*
-  modulo_pedidos_corrigido.c
-  Módulo de Pedidos (sem clientes) - versão corrigida e mais robusta.
-  Integra com seu arquivo produtos.txt (mesmo formato que você já usa).
-*/
+// ============================================================
+// MÓDULO DE PEDIDOS - SISTEMA DE CONTROLE
+// SOMENTE A PARTE DE PEDIDOS (Clientes e Produtos apenas validados)
+// Compilar: gcc modulo_pedidos.c -lncurses -o pedidos
+// ============================================================
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <ncurses.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
-#define ARQ_PEDIDOS "pedidos.txt"
-#define ARQ_ITENS   "itens_pedido.txt"
-#define ARQ_PRODUTOS "produtos.txt"
-#define TMP_FILE "tmp_pedidos.tmp"
+// Arquivos usados pelo módulo (somente leitura de clientes e produtos)
+#define ARQ_CLIENTES  "clientes.dat"
+#define ARQ_PRODUTOS  "produtos.dat"
 
-void limpar_buffer_p() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
+#define ARQ_PEDIDOS   "pedidos.dat"
+#define ARQ_ITENS     "itenspedido.dat"
 
-/* -----------------------------------------------------------------
-   Funções utilitárias: verificar existência de produto/pedido
-   ----------------------------------------------------------------- */
-int produtoExiste_p(int codigo) {
-    FILE *arq = fopen(ARQ_PRODUTOS, "r");
-    char linha[256];
-    int lido;
-
-    if (!arq) return 0;
-
-    while (fgets(linha, sizeof(linha), arq)) {
-        if (sscanf(linha, "%d", &lido) == 1) {
-            if (lido == codigo) {
-                fclose(arq);
-                return 1;
-            }
-        }
-    }
-    fclose(arq);
-    return 0;
-}
-
-int pedidoExiste_p(int id) {
-    FILE *arq = fopen(ARQ_PEDIDOS, "r");
-    char linha[256];
-    int idLido;
-
-    if (!arq) return 0;
-
-    while (fgets(linha, sizeof(linha), arq)) {
-        if (sscanf(linha, "ID:%d", &idLido) == 1) {
-            if (idLido == id) {
-                fclose(arq);
-                return 1;
-            }
-        }
-    }
-    fclose(arq);
-    return 0;
-}
-
-/* -----------------------------------------------------------------
-   Gera ID automático para pedido (se arquivo não existir retorna 1)
-   ----------------------------------------------------------------- */
-int gerarIdPedido_p() {
-    FILE *arq = fopen(ARQ_PEDIDOS, "r");
-    char linha[256];
-    int ultimo = 0;
-
-    if (!arq) return 1; // primeiro id = 1
-
-    while (fgets(linha, sizeof(linha), arq)) {
-        int id;
-        if (sscanf(linha, "ID:%d", &id) == 1) {
-            if (id > ultimo) ultimo = id;
-        }
-    }
-    fclose(arq);
-    return ultimo + 1;
-}
-
-/* -----------------------------------------------------------------
-   CADASTRAR PEDIDO
-   Formato gravado:
-   ID:<id>
-   DATA:<texto>
-   TOTAL:<valor (atualmente 0)>
-   ---
-   ----------------------------------------------------------------- */
-int cadastrarPedido_p() {
-    int id = gerarIdPedido_p();
-    char data[32];
-
-    printf("\n--- CADASTRAR PEDIDO ---\n");
-    limpar_buffer_p(); // garante buffer limpo antes do fgets
-    printf("Data (dd/mm/aaaa): ");
-    if (!fgets(data, sizeof(data), stdin)) {
-        printf("Erro lendo data.\n");
-        return 0;
-    }
-    data[strcspn(data, "\n")] = 0;
-
-    FILE *arq = fopen(ARQ_PEDIDOS, "a");
-    if (!arq) {
-        perror("Erro abrindo arquivo de pedidos (a)");
-        return 0;
-    }
-
-    fprintf(arq, "ID:%d\nDATA:%s\nTOTAL:0\n---\n", id, data);
-    fclose(arq);
-
-    printf("Pedido criado com sucesso! ID = %d\n", id);
-    return id;
-}
-
-/* -----------------------------------------------------------------
-   LISTAR TODOS PEDIDOS
-   ----------------------------------------------------------------- */
-void listarPedidos_p() {
-    FILE *arq = fopen(ARQ_PEDIDOS, "r");
-    char linha[256];
-
-    if (!arq) {
-        printf("Nenhum pedido encontrado (arquivo ausente).\n");
-        return;
-    }
-
-    printf("\n--- LISTA DE PEDIDOS ---\n");
-    while (fgets(linha, sizeof(linha), arq)) {
-        printf("%s", linha);
-    }
-    fclose(arq);
-}
-
-/* -----------------------------------------------------------------
-   CONSULTAR PEDIDO (mostra bloco do pedido e itens associados)
-   ----------------------------------------------------------------- */
-void consultarPedido_p() {
+// ========================= ESTRUTURAS =========================
+typedef struct {
     int id;
-    printf("ID do pedido: ");
-    if (scanf("%d", &id) != 1) {
-        printf("Entrada invalida.\n");
-        limpar_buffer_p();
-        return;
-    }
+    char nome[100];
+    char endereco[200];
+    char telefone[20];
+} Cliente;
 
-    FILE *arq = fopen(ARQ_PEDIDOS, "r");
-    char linha[256];
-    int achou = 0;
-    int idLido = 0;
-
-    if (!arq) {
-        printf("Nenhum pedido cadastrado.\n");
-        return;
-    }
-
-    printf("\n--- DADOS DO PEDIDO ---\n");
-    while (fgets(linha, sizeof(linha), arq)) {
-        if (sscanf(linha, "ID:%d", &idLido) == 1) {
-            if (idLido == id) achou = 1;
-            else achou = 0;
-        }
-        if (achou) {
-            printf("%s", linha);
-            if (strcmp(linha, "---\n") == 0) break;
-        }
-    }
-    fclose(arq);
-
-    if (!achou) {
-        printf("Pedido %d nao encontrado.\n", id);
-        return;
-    }
-
-    // mostra itens (se existirem)
-    FILE *it = fopen(ARQ_ITENS, "r");
-    if (!it) {
-        printf("\nNenhum item cadastrado para este pedido.\n");
-        return;
-    }
-
-    printf("\n--- ITENS DO PEDIDO ---\n");
-    int ped, prod, quant;
-    double subtotal;
-    int encontrouItens = 0;
-    while (fgets(linha, sizeof(linha), it)) {
-        if (sscanf(linha, "%d %d %d %lf", &ped, &prod, &quant, &subtotal) == 4) {
-            if (ped == id) {
-                printf("Produto %d | Quantidade %d | Subtotal %.2f\n", prod, quant, subtotal);
-                encontrouItens = 1;
-            }
-        }
-    }
-    if (!encontrouItens) printf("Sem itens para este pedido.\n");
-    fclose(it);
-}
-
-/* -----------------------------------------------------------------
-   Recupera preco do produto no arquivo produtos.txt
-   Formato esperado (seu formato):
-   linha1: ---------- separador
-   linha2: <codigo>
-   linha3: <descricao>
-   linha4: <valor>    <-- aqui está o preço
-   linha5: <quantidade>
-   linha6: ---------- separador
-   Atenção: sua implementação atual grava: separador, codigo, desc, valor, quantidade, separador.
-   Esta função busca a linha com o codigo e lê a próxima linha que contém descricao e depois lê a linha do valor.
-   ----------------------------------------------------------------- */
-int recuperarPrecoProduto(int codigo, double *preco_out) {
-    FILE *prod = fopen(ARQ_PRODUTOS, "r");
-    char linha[256];
-    if (!prod) return 0;
-
-    while (fgets(linha, sizeof(linha), prod)) {
-        int c;
-        if (sscanf(linha, "%d", &c) == 1 && c == codigo) {
-            // próxima linha = descrição (consumir)
-            if (!fgets(linha, sizeof(linha), prod)) { fclose(prod); return 0; }
-            // próxima linha = valor
-            if (!fgets(linha, sizeof(linha), prod)) { fclose(prod); return 0; }
-            // tentar ler valor como double (pode ser int)
-            double v = 0;
-            if (sscanf(linha, "%lf", &v) == 1) {
-                *preco_out = v;
-                fclose(prod);
-                return 1;
-            } else {
-                fclose(prod);
-                return 0;
-            }
-        }
-    }
-
-    fclose(prod);
-    return 0;
-}
-
-/* -----------------------------------------------------------------
-   ADICIONAR ITEM AO PEDIDO (validando pedido e produto)
-   Formato do arquivo de itens: "<pedidoId> <produtoId> <quantidade> <subtotal>\n"
-   ----------------------------------------------------------------- */
-void adicionarItem_p() {
-    int pedidoID, produtoID, quantidade;
-
-    printf("ID do pedido: ");
-    if (scanf("%d", &pedidoID) != 1) { limpar_buffer_p(); printf("Entrada invalida.\n"); return; }
-
-    if (!pedidoExiste_p(pedidoID)) {
-        printf("Pedido %d nao existe. Crie o pedido antes de adicionar itens.\n", pedidoID);
-        return;
-    }
-
-    printf("Codigo do produto: ");
-    if (scanf("%d", &produtoID) != 1) { limpar_buffer_p(); printf("Entrada invalida.\n"); return; }
-
-    if (!produtoExiste_p(produtoID)) {
-        printf("Produto %d nao existe (verifique produtos.txt).\n", produtoID);
-        return;
-    }
-
-    printf("Quantidade: ");
-    if (scanf("%d", &quantidade) != 1 || quantidade <= 0) {
-        limpar_buffer_p();
-        printf("Quantidade invalida.\n");
-        return;
-    }
-
+typedef struct {
+    int id;
+    char descricao[100];
     double preco;
-    if (!recuperarPrecoProduto(produtoID, &preco)) {
-        printf("Nao foi possivel recuperar preco do produto %d.\n", produtoID);
-        return;
-    }
+    int estoque;
+} Produto;
 
-    double subtotal = preco * quantidade;
+typedef struct {
+    int id;
+    int clienteId;
+    char data[11];
+    double total;
+} Pedido;
 
-    FILE *it = fopen(ARQ_ITENS, "a");
-    if (!it) {
-        perror("Erro abrindo arquivo de itens (a)");
-        return;
-    }
-    fprintf(it, "%d %d %d %.2f\n", pedidoID, produtoID, quantidade, subtotal);
-    fclose(it);
+typedef struct {
+    int pedidoId;
+    int produtoId;
+    int quantidade;
+    double subtotal;
+} ItemPedido;
 
-    printf("Item adicionado com sucesso! Subtotal: %.2f\n", subtotal);
+
+// =============================================================
+// UTILITÁRIOS
+// =============================================================
+
+// Mostra mensagem no rodapé
+void msg(WINDOW *w, const char *m) {
+    int h; int l;
+    getmaxyx(w, h, l);
+    mvwprintw(w, h-2, 2, "%s", m);
+    wrefresh(w);
 }
 
-/* -----------------------------------------------------------------
-   REMOVER PEDIDO COMPLETO + remover itens associados
-   ----------------------------------------------------------------- */
-void removerPedido_p() {
-    int id;
-    printf("ID do pedido a remover: ");
-    if (scanf("%d", &id) != 1) { limpar_buffer_p(); printf("Entrada invalida.\n"); return; }
+void pausa(WINDOW *w) {
+    msg(w, "Pressione qualquer tecla...");
+    wgetch(w);
+}
 
-    FILE *orig = fopen(ARQ_PEDIDOS, "r");
-    if (!orig) {
-        printf("Arquivo de pedidos inexistente.\n");
-    } else {
-        FILE *temp = fopen(TMP_FILE, "w");
-        if (!temp) { perror("Erro criando arquivo temporario"); fclose(orig); return; }
+// Pega data atual
+void data_atual(char buf[11]) {
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    sprintf(buf, "%02d/%02d/%04d", tm.tm_mday, tm.tm_mon+1, tm.tm_year+1900);
+}
 
-        char linha[256];
-        int pulando = 0, idLido = 0;
 
-        while (fgets(linha, sizeof(linha), orig)) {
-            if (sscanf(linha, "ID:%d", &idLido) == 1) {
-                if (idLido == id) pulando = 1;
-                else pulando = 0;
-            }
-            if (pulando) {
-                // se for a linha que marca fim do bloco, para pular e não escrever o separador
-                if (strcmp(linha, "---\n") == 0) { pulando = 0; continue; }
-                else continue;
-            } else {
-                fprintf(temp, "%s", linha);
-            }
+// =============================================================
+// FUNÇÕES DE VALIDAÇÃO
+// =============================================================
+
+int cliente_existe(int id) {
+    FILE *f = fopen(ARQ_CLIENTES, "rb");
+    if (!f) return 0;
+
+    Cliente c;
+    while (fread(&c, sizeof(c), 1, f)) {
+        if (c.id == id) {
+            fclose(f);
+            return 1;
         }
+    }
+    fclose(f);
+    return 0;
+}
 
-        fclose(orig);
-        fclose(temp);
+int produto_existe(int id, Produto *out) {
+    FILE *f = fopen(ARQ_PRODUTOS, "rb");
+    if (!f) return 0;
 
-        // substitui arquivo somente se tmp foi criado
-        if (remove(ARQ_PEDIDOS) != 0) {
-            // pode ser que o arquivo original tenha sido removido entre tempo; ignoramos
+    Produto p;
+    while (fread(&p, sizeof(p), 1, f)) {
+        if (p.id == id) {
+            if (out) *out = p;
+            fclose(f);
+            return 1;
         }
-        rename(TMP_FILE, ARQ_PEDIDOS);
-        printf("Bloco do pedido removido (se existia).\n");
+    }
+    fclose(f);
+    return 0;
+}
+
+int pedido_existe(int id, Pedido *out) {
+    FILE *f = fopen(ARQ_PEDIDOS, "rb");
+    if (!f) return 0;
+
+    Pedido p;
+    while (fread(&p, sizeof(p), 1, f)) {
+        if (p.id == id) {
+            if (out) *out = p;
+            fclose(f);
+            return 1;
+        }
+    }
+    fclose(f);
+    return 0;
+}
+
+
+// =============================================================
+// ATUALIZAÇÃO DE ESTOQUE
+// =============================================================
+
+// Função interna usada pelo módulo de pedidos
+int atualizar_estoque(int prodId, int novoEstoque) {
+    FILE *f = fopen(ARQ_PRODUTOS, "rb");
+    if (!f) return 0;
+
+    FILE *tmp = fopen("prod_tmp.dat", "wb");
+    Produto p;
+    int ok = 0;
+
+    while (fread(&p, sizeof(p), 1, f)) {
+        if (p.id == prodId) {
+            p.estoque = novoEstoque;
+            ok = 1;
+        }
+        fwrite(&p, sizeof(p), 1, tmp);
     }
 
-    // remover itens associados
-    FILE *it = fopen(ARQ_ITENS, "r");
-    if (!it) {
-        printf("Arquivo de itens inexistente ou sem itens.\n");
-        return;
-    }
-    FILE *tmp2 = fopen(TMP_FILE, "w");
-    if (!tmp2) { perror("Erro tmp2"); fclose(it); return; }
+    fclose(f);
+    fclose(tmp);
 
-    char linha[256];
-    while (fgets(linha, sizeof(linha), it)) {
-        int ped;
-        if (sscanf(linha, "%d", &ped) == 1) {
-            if (ped != id) fprintf(tmp2, "%s", linha);
-        } else {
-            // linha inválida: copia para segurança
-            fprintf(tmp2, "%s", linha);
+    remove(ARQ_PRODUTOS);
+    rename("prod_tmp.dat", ARQ_PRODUTOS);
+    return ok;
+}
+
+int decrementar_estoque(int prodId, int qtd) {
+    Produto p;
+    if (!produto_existe(prodId, &p)) return 0;
+    if (p.estoque < qtd) return 0;
+    return atualizar_estoque(prodId, p.estoque - qtd);
+}
+
+int incrementar_estoque(int prodId, int qtd) {
+    Produto p;
+    if (!produto_existe(prodId, &p)) return 0;
+    return atualizar_estoque(prodId, p.estoque + qtd);
+}
+
+
+// =============================================================
+// CADASTRAR PEDIDO
+// =============================================================
+
+void cadastrar_pedido(WINDOW *w) {
+    char entrada[20];
+    Pedido ped;
+    double total = 0;
+
+    // 1 — Ler ID do pedido e validar unicidade
+    while (1) {
+        werase(w); box(w, 0, 0);
+        mvwprintw(w, 2, 2, "=== CADASTRAR PEDIDO ===");
+        mvwprintw(w, 4, 2, "ID do pedido: ");
+        echo();
+        mvwgetnstr(w, 4, 18, entrada, 10);
+        noecho();
+
+        ped.id = atoi(entrada);
+        if (ped.id <= 0) { msg(w, "ID inválido."); pausa(w); continue; }
+        if (pedido_existe(ped.id, NULL)) { msg(w, "Pedido já existe."); pausa(w); continue; }
+        break;
+    }
+
+    // 2 — Ler cliente
+    while (1) {
+        mvwprintw(w, 6, 2, "ID do cliente:          ");
+        echo();
+        mvwgetnstr(w, 6, 18, entrada, 10);
+        noecho();
+        ped.clienteId = atoi(entrada);
+
+        if (!cliente_existe(ped.clienteId)) { msg(w, "Cliente não existe."); pausa(w); continue; }
+        break;
+    }
+
+    // 3 — Inserir itens
+    FILE *fit = fopen(ARQ_ITENS, "ab");
+    while (1) {
+        mvwprintw(w, 8, 2, "ID produto (0 finalizar):      ");
+        echo();
+        mvwgetnstr(w, 8, 26, entrada, 10);
+        noecho();
+
+        int idProd = atoi(entrada);
+        if (idProd == 0) break;
+
+        Produto p;
+        if (!produto_existe(idProd, &p)) {
+            msg(w, "Produto não existe.");
+            pausa(w);
+            continue;
+        }
+
+        mvwprintw(w, 10, 2, "Qtd: ");
+        echo();
+        mvwgetnstr(w, 10, 8, entrada, 10);
+        noecho();
+
+        int qtd = atoi(entrada);
+        if (qtd <= 0) { msg(w, "Qtd inválida."); pausa(w); continue; }
+
+        if (p.estoque < qtd) {
+            msg(w, "Estoque insuficiente.");
+            pausa(w);
+            continue;
         }
     }
     fclose(it);
     fclose(tmp2);
 
-    if (remove(ARQ_ITENS) != 0) {
-        // ok se não existir
+        // gravar item
+        ItemPedido it;
+        it.pedidoId = ped.id;
+        it.produtoId = idProd;
+        it.quantidade = qtd;
+        it.subtotal = qtd * p.preco;
+
+        fwrite(&it, sizeof(it), 1, fit);
+
+        // baixa estoque
+        decrementar_estoque(idProd, qtd);
+
+        total += it.subtotal;
+        msg(w, "Item adicionado!");
+        pausa(w);
     }
-    rename(TMP_FILE, ARQ_ITENS);
+    fclose(fit);
 
-    printf("Itens associados ao pedido removidos (se existiam).\n");
+    // 4 — Registrar o pedido
+    data_atual(ped.data);
+    ped.total = total;
+
+    FILE *fp = fopen(ARQ_PEDIDOS, "ab");
+    fwrite(&ped, sizeof(ped), 1, fp);
+    fclose(fp);
+
+    werase(w); box(w, 0, 0);
+    mvwprintw(w, 4, 2, "Pedido cadastrado!");
+    mvwprintw(w, 6, 2, "Total: R$ %.2f", total);
+    wrefresh(w);
+    pausa(w);
 }
 
-/* -----------------------------------------------------------------
-   MENU DO MÓDULO (para integração com seu main atual)
-   ----------------------------------------------------------------- */
-void menuPedidos() {
-    int op;
-    do {
-        printf("\n===== MODULO DE PEDIDOS =====\n");
-        printf("1 - Cadastrar Pedido\n");
-        printf("2 - Listar Pedidos\n");
-        printf("3 - Consultar Pedido\n");
-        printf("4 - Adicionar Item ao Pedido\n");
-        printf("5 - Remover Pedido\n");
-        printf("6 - Voltar\n");
-        printf("Opcao: ");
-        if (scanf("%d", &op) != 1) { limpar_buffer_p(); op = 0; }
 
-        switch (op) {
-            case 1: cadastrarPedido_p(); break;
-            case 2: listarPedidos_p(); break;
-            case 3: consultarPedido_p(); break;
-            case 4: adicionarItem_p(); break;
-            case 5: removerPedido_p(); break;
-            case 6: break;
-            default: if (op != 0) printf("Opcao invalida.\n"); break;
+// =============================================================
+// LISTAR PEDIDOS
+// =============================================================
+
+void listar_pedidos(WINDOW *w) {
+    FILE *f = fopen(ARQ_PEDIDOS, "rb");
+    werase(w); box(w, 0, 0);
+    mvwprintw(w, 2, 2, "=== LISTA DE PEDIDOS ===");
+
+    if (!f) {
+        mvwprintw(w, 4, 2, "Nenhum pedido encontrado.");
+        wrefresh(w);
+        pausa(w);
+        return;
+    }
+
+    Pedido p;
+    int linha = 4;
+    while (fread(&p, sizeof(p), 1, f)) {
+        mvwprintw(w, linha, 2, "ID:%d  Cliente:%d  Data:%s  Total: R$%.2f",
+                  p.id, p.clienteId, p.data, p.total);
+        linha++;
+
+        if (linha >= 20) {
+            pausa(w);
+            werase(w); box(w, 0, 0);
+            linha = 4;
         }
-    } while (op != 6);
+    }
+    fclose(f);
+
+    wrefresh(w);
+    pausa(w);
 }
 
-/* -----------------------------------------------------------------
-   Exemplo de main apenas para testar o módulo (você pode integrar ao seu main)
-   ----------------------------------------------------------------- */
+
+// =============================================================
+// CONSULTAR PEDIDO
+// =============================================================
+
+void listar_itens(WINDOW *w, int idPed) {
+    FILE *f = fopen(ARQ_ITENS, "rb");
+    if (!f) return;
+
+    ItemPedido it;
+    int linha = 8;
+
+    mvwprintw(w, 6, 2, "Itens:");
+
+    while (fread(&it, sizeof(it), 1, f)) {
+        if (it.pedidoId == idPed) {
+            Produto p;
+            produto_existe(it.produtoId, &p);
+
+            mvwprintw(w, linha, 2,
+                "%s | Qt:%d | Sub: R$%.2f",
+                p.descricao, it.quantidade, it.subtotal);
+
+            linha++;
+        }
+    }
+
+    fclose(f);
+}
+
+void consultar_pedido(WINDOW *w) {
+    char entrada[20];
+    int id;
+
+    werase(w); box(w, 0, 0);
+    mvwprintw(w, 2, 2, "=== CONSULTAR PEDIDO ===");
+    mvwprintw(w, 4, 2, "ID: ");
+    echo();
+    mvwgetnstr(w, 4, 7, entrada, 10);
+    noecho();
+    id = atoi(entrada);
+
+    Pedido p;
+    if (!pedido_existe(id, &p)) {
+        msg(w, "Pedido não encontrado.");
+        pausa(w);
+        return;
+    }
+
+    werase(w); box(w, 0, 0);
+    mvwprintw(w, 2, 2, "Pedido %d", p.id);
+    mvwprintw(w, 3, 2, "Cliente: %d", p.clienteId);
+    mvwprintw(w, 4, 2, "Data: %s", p.data);
+    mvwprintw(w, 5, 2, "Total: R$ %.2f", p.total);
+
+    listar_itens(w, id);
+    wrefresh(w);
+    pausa(w);
+}
+
+
+// =============================================================
+// REMOVER PEDIDO
+// =============================================================
+
+void remover_pedido(WINDOW *w) {
+    char entrada[20];
+    int id;
+
+    werase(w); box(w, 0, 0);
+    mvwprintw(w, 2, 2, "=== REMOVER PEDIDO ===");
+    mvwprintw(w, 4, 2, "ID: ");
+    echo();
+    mvwgetnstr(w, 4, 7, entrada, 10);
+    noecho();
+    id = atoi(entrada);
+
+    Pedido p;
+    if (!pedido_existe(id, &p)) {
+        msg(w, "Pedido não existe.");
+        pausa(w);
+        return;
+    }
+
+    // Restaura estoque
+    FILE *fit = fopen(ARQ_ITENS, "rb");
+    FILE *tmpItens = fopen("itens_tmp.dat", "wb");
+    ItemPedido it;
+
+    while (fread(&it, sizeof(it), 1, fit)) {
+        if (it.pedidoId == id) {
+            incrementar_estoque(it.produtoId, it.quantidade);
+        } else {
+            fwrite(&it, sizeof(it), 1, tmpItens);
+        }
+    }
+
+    fclose(fit);
+    fclose(tmpItens);
+    remove(ARQ_ITENS);
+    rename("itens_tmp.dat", ARQ_ITENS);
+
+    // Remove pedido
+    FILE *fp = fopen(ARQ_PEDIDOS, "rb");
+    FILE *tmpPed = fopen("ped_tmp.dat", "wb");
+
+    while (fread(&p, sizeof(p), 1, fp)) {
+        if (p.id != id)
+            fwrite(&p, sizeof(p), 1, tmpPed);
+    }
+
+    fclose(fp);
+    fclose(tmpPed);
+    remove(ARQ_PEDIDOS);
+    rename("ped_tmp.dat", ARQ_PEDIDOS);
+
+    msg(w, "Pedido removido com sucesso.");
+    pausa(w);
+}
+
+
+// =============================================================
+// MENU
+// =============================================================
+
+void menu_pedidos(WINDOW *w) {
+    int op;
+
+    do {
+        werase(w); box(w, 0, 0);
+        mvwprintw(w, 2, 2, "=== MÓDULO PEDIDOS ===");
+        mvwprintw(w, 4, 2, "1 - Cadastrar Pedido");
+        mvwprintw(w, 5, 2, "2 - Listar Pedidos");
+        mvwprintw(w, 6, 2, "3 - Consultar Pedido");
+        mvwprintw(w, 7, 2, "4 - Remover Pedido");
+        mvwprintw(w, 8, 2, "5 - Sair");
+        mvwprintw(w, 10,2, "Opção: ");
+        wrefresh(w);
+
+        echo();
+        wscanw(w, "%d", &op);
+        noecho();
+
+        switch(op) {
+            case 1: cadastrar_pedido(w); break;
+            case 2: listar_pedidos(w); break;
+            case 3: consultar_pedido(w); break;
+            case 4: remover_pedido(w); break;
+        }
+    } while (op != 5);
+}
+
+
+// =============================================================
+// MAIN
+// =============================================================
+
 int main() {
-    printf("Executando modulo de pedidos (teste). Integre menuPedidos() ao seu main.\n");
-    menuPedidos();
-    printf("Saindo do módulo de pedidos.\n");
+    initscr();
+    cbreak();
+    noecho();
+
+    WINDOW *win = newwin(24, 80, 1, 2);
+
+    menu_pedidos(win);
+
+    delwin(win);
+    endwin();
+
     return 0;
 }
