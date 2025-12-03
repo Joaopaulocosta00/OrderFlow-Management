@@ -1,0 +1,28 @@
+--- NOVO PEDIDO ---
+id do produto: 9674
+descriçao: Leite de amendoas
+valor: 10.00
+quantidade: 200
+-------------------
+
+--- NOVO PEDIDO ---
+id do produto: 9674
+descriçao: Leite de amendoas
+valor: 10.00
+quantidade: 200
+-------------------
+
+--- NOVO PEDIDO ---
+id do produto: 9674
+descriçao: Leite de amendoas
+valor: 10.00
+quantidade: 200
+-------------------
+
+--- NOVO PEDIDO ---
+id do produto: -1
+descriçao: aggua hfhjdhjfdhsjahfdjshfjhdsafdhsafhdashjfhdafhjdashfhhadjsfjdjsjajfjasjjjsadjfjsdahfhdshajfjdjsa
+valor: -11584.00
+quantidade: 1757486752
+-------------------
+

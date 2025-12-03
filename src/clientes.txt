@@ -1,0 +1,20 @@
+---------Dados do Cliente---------
+Codigo: d
+Nome: joao paulo da costa
+Tipo: CPF
+CNPJ: 
+Telefone: 62992190708
+Endereco: rua da alma 
+Email: joaop.b402@gmail.com
+--------------------------
+
+---------Dados do Cliente---------
+Codigo: 9
+Nome: joao paulo da costa
+Tipo: CPF
+CNPJ: 
+Telefone: 62992190708
+Endereco: rua da alma 
+Email: joaop.b402@gmail.com
+--------------------------
+

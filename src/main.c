@@ -1,28 +1,40 @@
-// main.c
 
-#include <stdio.h>
-// Inclui o cabeçalho da subpasta
-#include "../include/feature_produto.h" 
+#include "feature_interface.h"
+#include "feature_cliente.h"
+#include "feature_produto.h"
 
-int main(){
+int main() {
+    iniciarInterface(); // deixa centralizado
 
-    int opcao;
-    printf("Bem vindo ao sistema oque deseja fazer ? \n");
-    printf("Para entrar na area de produto digite 1 \n");
-    
-    // Verifica se a leitura foi bem-sucedida
-    if (scanf("%d", &opcao) != 1) {
-        printf("Entrada invalida.\n");
-        return 1; // Retorna erro
+    // Carrega os dados da me moria 
+    carregarClientesCSV();
+    carregarProdutosCSV();
+
+    int opcao = -1;
+    while (opcao != 0) {
+        opcao = menuPrincipal(); // Interface desenha
+
+        switch (opcao) {
+            case 1:
+                mostrarMenuClientes(); // Chama módulo cliente
+                break;
+            case 2:
+                mostrarMenuProdutos(); // Chama módulo produto
+                break;
+            case 0:
+                printw("\nSalvando dados e saindo...\n");
+                break;
+            default:
+                printw("\nOpcao invalida!\n");
+                pausa();
+                break;
+        }
     }
 
-    // A função modulo_produto() JÁ FOI DECLARADA pelo #include acima.
-    if (opcao == 1){
-        modulo_produto(); // Apenas chama
-    } else {
-        printf("Opcao invalida \n");
-    }
-    
-    // Indica que o programa terminou com sucesso
-    return 0; 
+    // Persiste dados antes de fechar
+    salvarClientesCSV();
+    salvarProdutosCSV();
+
+    fecharInterface(); // Encerra ncurses
+    return 0;
 }

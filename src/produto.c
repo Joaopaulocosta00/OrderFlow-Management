@@ -1,349 +1,241 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "feature_interface.h" // ncurses e ferramentas visuais
+#include "feature_produto.h"
+// #include "feature_pedido.h" // (modulo pedido.c - kauan )
 
-#define NOME_ARQUIVO "produtos.txt"
-#define NOME_TEMP "temp.txt"
-#define TAMANHO_MAX_LINHA 256
-// O produto tem 5 linhas de dados (----- CÓDIGO DESCRIÇÃO VALOR QUANTIDADE) + a linha de separação do final = 6 linhas no total
-#define LINHAS_PRODUTO 6 
+#define ARQUIVO_PRODUTOS "data/Produtos.csv"
+#define MAX_PRODUTOS 100
 
-// --------------------------------------------------------------------------------------------------
-// PROTÓTIPOS (Declaração de Funções para o compilador)
-// --------------------------------------------------------------------------------------------------
-void limpar_buffer();
-int codigoExiste(int codigoAVerificar);
-int novo_produto(int code, char descricao[], int valor, int quant);
-int modulo_novo_produto();
-int listar_produtos();
-int apagar_produto();
+Produto listaProdutos[MAX_PRODUTOS];
+int numProdutos = 0;
 
+/
+// funcoesdo produto 
+// ==============================================================================
 
-// --------------------------------------------------------------------------------------------------
-// IMPLEMENTAÇÃO DAS FUNÇÕES
-// --------------------------------------------------------------------------------------------------
-
-// ... código anterior
-
-int apagar_produto() { 
-    FILE *arquivo_original, *arquivo_temp;
-    char linha[TAMANHO_MAX_LINHA];
-    char codigo_a_apagar[20];
-    int linhasParaPular = 0;
-    int resposta;
-    // Adiciona uma flag para saber se o código foi encontrado
-    int codigo_encontrado = 0; 
-
-    printf("\n--- APAGAR PRODUTO ---\n");
-    printf("Digite o codigo do produto a ser apagado: ");
-    if (scanf("%19s", codigo_a_apagar) != 1) {
-        printf("Erro ao ler o codigo.\n");
-        return 1;
+// aqui vai rpetorna o indice do produto no vetor ou -1 se não achar
+int buscarProdutoPorId(int id) {
+    for (int i = 0; i < numProdutos; i++) {
+        if (listaProdutos[i].id == id) {
+            return i;
+        }
     }
-    limpar_buffer();
+    return -1;
+}
 
-    arquivo_original = fopen(NOME_ARQUIVO, "r");
-    if (arquivo_original == NULL) {
-        printf("Arquivo de produtos nao encontrado. Nada para apagar.\n");
-        return 0;
-    }
-    
-    arquivo_temp = fopen(NOME_TEMP, "w");
-    // ... (restante da abertura de arquivo)
+// Simulação da verificação de pedidos (Requisito do cenário de Remover)
+// Como o módulo de pedidos ainda não está pronto, deixamos essa função preparada.
+int produtoEstaEmAlgumPedido(int id) {
+    // TODO: Quando criar o modulo de pedidos, implementar a busca real aqui.
+    // Por enquanto, retorna 0 (falso), permitindo excluir.
+    // Exemplo de lógica futura: if (buscarPedidoComProduto(id)) return 1;
+    return 0; 
+}
 
-    // Processa o arquivo linha por linha 
-    while (fgets(linha, TAMANHO_MAX_LINHA, arquivo_original) != NULL) {
+// ==============================================================================
+// PERSISTÊNCIA (CSV)
+// ==============================================================================
+
+void carregarProdutosCSV() {
+    FILE *f = fopen(ARQUIVO_PRODUTOS, "r");
+    if (!f) return; // Se não existe, inicia vazio
+
+    char linha[256];
+    numProdutos = 0;
+    while(fgets(linha, sizeof(linha), f) && numProdutos < MAX_PRODUTOS) {
+        // Parse CSV: id;descricao;preco;estoque
+        char *token = strtok(linha, ";");
+        listaProdutos[numProdutos].id = atoi(token);
         
-        // 1. Se estivermos pulando linhas (apagando o bloco), apenas decrementa e continua
-        if (linhasParaPular > 0) {
-            linhasParaPular--;
-            continue; 
-        }
-
-        // ... (resto da lógica de busca)
-        char linha_busca[TAMANHO_MAX_LINHA];
-        sprintf(linha_busca, "%s\n", codigo_a_apagar);
-
-        // Se encontrar o código na linha, começa a pular e ATIVA A FLAG
-        if (strstr(linha, linha_busca) != NULL) { 
-            codigo_encontrado = 1; // <--- ATIVA A FLAG AQUI!
-            linhasParaPular = LINHAS_PRODUTO - 1; 
-            continue; // Pula a linha atual (código)
-        }
-
-        // 3. Se não estiver no modo de pular, copia a linha para o arquivo temporário
-        fprintf(arquivo_temp, "%s", linha);
-    }
-    
-    fclose(arquivo_original);
-    fclose(arquivo_temp);
-
-    // ----------------------------------------------------------------------
-    // NOVO BLOCO: VERIFICAÇÃO E MENSAGEM
-    // ----------------------------------------------------------------------
-
-    if (codigo_encontrado == 0) {
-        // Se o código não foi encontrado, exclui o arquivo temporário e avisa.
-        remove(NOME_TEMP);
-        printf("\nO codigo %s nao foi encontrado no sistema. Nenhum produto foi apagado.\n", codigo_a_apagar);
-    } else {
-        // Se o código foi encontrado, faz a substituição dos arquivos
-        if (remove(NOME_ARQUIVO) != 0) {
-            perror("Erro ao deletar o arquivo original.");
-            return 1;
-        }
-
-        if (rename(NOME_TEMP, NOME_ARQUIVO) != 0) {
-            perror("Erro ao renomear o arquivo temporario.");
-            return 1;
-        }
+        token = strtok(NULL, ";");
+        if(token) strcpy(listaProdutos[numProdutos].descricao, token);
         
-        printf("\nProcesso concluido. O codigo %s e os dados associados foram apagados.\n", codigo_a_apagar);
+        token = strtok(NULL, ";");
+        if(token) listaProdutos[numProdutos].preco = atof(token);
+        
+        token = strtok(NULL, ";");
+        if(token) listaProdutos[numProdutos].estoque = atoi(token);
+        
+        numProdutos++;
     }
-    
-    // ... (restante do código de recursão)
-    printf("Deseja apagar outro pedido? 0 sim e 1 nao: ");
-    if (scanf("%d", &resposta) == 1 && resposta == 0) {
-        limpar_buffer();
-        apagar_produto(); 
-    } else {
-        printf("Retornando ao menu principal...\n");
+    fclose(f);
+}
+
+void salvarProdutosCSV() {
+    FILE *f = fopen(ARQUIVO_PRODUTOS, "w");
+    if (!f) return;
+
+    for(int i=0; i<numProdutos; i++) {
+        fprintf(f, "%d;%s;%.2f;%d\n", 
+            listaProdutos[i].id, 
+            listaProdutos[i].descricao, 
+            listaProdutos[i].preco, 
+            listaProdutos[i].estoque);
     }
-    
-    return 0;
+    fclose(f);
 }
 
 
-// MODULO DE CADASTRO DE PRODUTOS
-int modulo_novo_produto () {
 
-    int code, valor, quant, resposta;
-    char descricao[100];
-    int salvamento;
+// cadastrar produto
+void cadastrarProduto() {
+    Produto p;
+    int idValido = 0;
 
-    printf("\n--- NOVO PRODUTO ---\n");
-    printf("insira o codigo do produto: ");
-    if (scanf("%d", &code) != 1) {
-        printf("Erro ao ler o codigo.\n");
-        limpar_buffer();
-        return 1;
+    mostrarCabecalho("CADASTRAR PRODUTO");
+
+    if (numProdutos >= MAX_PRODUTOS) { //vasi verifica se a lista ja atingiu o limite maximo (100)
+        printw("Erro: Memoria cheia.\n");
+        pausa();
+        return; // aborta a funcoaa por estar cheio
     }
 
-    if (codigoExiste(code)) {
-        printf("O codigo %d JA existe. Nao e possivel cadastrar.\n", code);
-    } else {
-        printf("O codigo %d nao existe, adicionando ao sistema.\n", code);
+    echo(); // habilita escrita
 
-        limpar_buffer(); // Limpa apos o scanf do code
+   
+    do {
+        printw("\nCodigo do Produto: ");
+        scanw("%d", &p.id);
 
-        printf("Digita a descricao do produto: ");
-        fgets(descricao, sizeof(descricao), stdin);
-        descricao[strcspn(descricao, "\n")] = 0; // Remove '\n'
-
-        printf("Digita o valor do produto: ");
-        scanf("%d", &valor);
-        limpar_buffer();
-
-        printf("Quantos produtos tem no estoque: ");
-        scanf("%d", &quant);
-        limpar_buffer();
-
-        // --------------------------- confirmar cadastro ---------------
-
-        printf("Salvar dados? 0 sim e 1 nao: ");
-        scanf("%d", &resposta); // CORREÇÃO DE SINTAXE AQUI
-        limpar_buffer();
-
-
-        if (resposta == 0){
-            
-            salvamento = novo_produto(code, descricao, valor, quant);
-            
-            if (salvamento == 0) {
-                printf("\nOs seguintes dados foram salvos:\n");
-                printf("Codigo de produto : %d \n", code);
-                printf("Descricao do produto : %s \n", descricao);
-                printf("O valor do produto e: %d \n", valor);
-                printf("A quantidade de produto e: %d \n", quant);
-            }
-        
+        if (buscarProdutoPorId(p.id) != -1) { // verifica se ja existe o codigo 
+            //  Mensagem de erro e retorna para tela oara o usuario tentar outro codigo de produto 
+            printw(" > Erro: Codigo %d ja existe. Tente outro.\n", p.id);
         } else {
-            printf("Os dados nao foram salvos.\n");
-            
-            printf("Deseja iniciar o cadastro novamente? 0 sim e 1 nao: ");
-            scanf("%d", &resposta);
-            limpar_buffer();
-
-            if (resposta == 0){
-                modulo_novo_produto();
-            } else {
-                printf("Encerrando o modulo de cadastro.\n");
-            }
+            idValido = 1; ?// aqui vai criar um loop ate o usuario digitar o codigo valido pro sistema
         }
-    }
+    } while (!idValido);
 
-    return 0;
-}
+    // Informa descrição, preço e estoque 
 
+    printw("Descricao: ");
+    getnstr(p.descricao, 99); // getnstr parab o usuaruio escrever texto com espaço
 
-// Função para verificar se o código existe no arquivo
-int codigoExiste(int codigoAVerificar) {
-    FILE *arquivo;
-    char linha[256];
-    int codigoLido;
-    int encontrado = 0; 
+    printw("Preco: "); 
+    scanw("%lf", &p.preco);
 
-    arquivo = fopen(NOME_ARQUIVO, "r");
-    if (arquivo == NULL) {
-        return 0; 
-    }
+    printw("Quantidade em Estoque: ");
+    scanw("%d", &p.estoque);
 
-    while (fgets(linha, sizeof(linha), arquivo) != NULL) {
-        if (sscanf(linha, "%d,", &codigoLido) == 1) {
-            if (codigoLido == codigoAVerificar) {
-                encontrado = 1;
-                break; 
-            }
-        }
-    }
+    noecho(); // vai desabilitar o usuario digitar algo
 
-    fclose(arquivo);
-    return encontrado; 
-}
-
-
-// Função para salvar o novo produto
-int novo_produto(int code, char descricao[], int valor, int quant){
-    FILE *arquivo;
-
-    arquivo = fopen(NOME_ARQUIVO, "a");
-
-    if (arquivo == NULL) {
-        printf("Erro ao abrir ou criar o arquivo!\n");
-        return 1; // Falha
-    }
-
-    fprintf(arquivo, "------------------------------------------------------------------------------------------\n"); 
-    fprintf(arquivo, "%d\n", code);
-    fprintf(arquivo, "%s\n", descricao);   
-    fprintf(arquivo, "%d\n", valor);       
-    fprintf(arquivo, "%d\n", quant); 
-    fprintf(arquivo, "------------------------------------------------------------------------------------------\n"); 
-
-    fclose(arquivo);
-
-    printf("Produto salvo com sucesso.\n");
-    return 0; // Sucesso
-}
-
-
-// Função para limpar o buffer
-void limpar_buffer() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
-
-
-// Função para listar/buscar produtos
-int listar_produtos() {
-    FILE *arquivo;
-    char linha[256];
-    int codigoLido;
-    int codigoABuscar; 
-
-    printf("\n--- BUSCAR PRODUTO ---\n");
-    printf("Por favor digite o codigo do produto que deseja verificar se esta cadastrado: ");
+    // vai confirmar o cadastro  
+    printw("\ncadastrar este produto? (s/n): ");
+    int confirm = getch();
     
-    if (scanf("%d", &codigoABuscar) != 1) {
-        printf("Erro na leitura do codigo.\n");
-        return 0;
-    }
-    limpar_buffer(); 
-
-    arquivo = fopen(NOME_ARQUIVO, "r");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo 'produtos.txt' ou o arquivo nao existe.\n");
-        return 0;
-    }
-
-    while (fgets(linha, sizeof(linha), arquivo) != NULL) {
-        if (sscanf(linha, "%d", &codigoLido) == 1) {
-            
-            if (codigoLido == codigoABuscar) {
-                
-                char descricao[100];
-                int valor, quant;
-
-                printf("\n--- Produto Encontrado ---\n");
-                printf("Codigo: %d\n", codigoLido);
-
-                // Lê as próximas 4 linhas (Descricao, Valor, Quantidade, Separador)
-                
-                if (fgets(descricao, sizeof(descricao), arquivo) == NULL) goto erro_leitura;
-                descricao[strcspn(descricao, "\n")] = 0;
-                printf("Descricao: %s\n", descricao);
-
-                if (fgets(linha, sizeof(linha), arquivo) == NULL || sscanf(linha, "%d", &valor) != 1) goto erro_leitura;
-                printf("Valor: %d\n", valor);
-
-                if (fgets(linha, sizeof(linha), arquivo) == NULL || sscanf(linha, "%d", &quant) != 1) goto erro_leitura;
-                printf("Quantidade: %d\n", quant);
-                
-                // Lê o separador final do bloco
-                fgets(linha, sizeof(linha), arquivo); 
-
-                printf("--------------------------\n");
-                fclose(arquivo);
-                return 1; 
-            }
-        }
-    }
-
-    printf("O codigo %d nao foi encontrado no sistema.\n", codigoABuscar);
-    fclose(arquivo);
-    return 0; 
-
-    erro_leitura:
-    printf("Erro na leitura dos dados apos encontrar o codigo %d.\n", codigoABuscar);
-    fclose(arquivo);
-    return 0; 
-}
-
-
-// --------------------------------------------------------------------------------------------------
-// FUNÇÃO PRINCIPAL
-// --------------------------------------------------------------------------------------------------
-int main() {
-    int opcao;
-    
-    printf("\n=======================================\n");
-    printf("Bem vindo ao sistema! O que deseja fazer?\n");
-    printf("1 - Cadastrar novo produto\n");
-    printf("2 - Listar/Buscar produto por codigo\n");
-    printf("3 - Apagar um produto\n");
-    printf("4 - Sair\n");
-    printf("Digite a opcao: ");
-    
-    if (scanf("%d", &opcao) != 1) {
-        printf("Opcao invalida. Encerrando.\n");
-        limpar_buffer();
-        return 1;
-    }
-    limpar_buffer();
-
-    if (opcao == 1){
-        // Usando a funcao correta: modulo_novo_produto()
-        modulo_novo_produto(); 
-    } else if (opcao == 2){
-        listar_produtos();
-    } else if (opcao == 3){
-        apagar_produto();
-    } else if (opcao == 4) {
-        printf("Obrigado por usar o sistema. Adeus!\n");
-        return 0;
+    if (toupper(confirm) == 'S') {
+        listaProdutos[numProdutos] = p; // (nao esquecer )a variavel p contem os dados que o usuario acabou de digitar
+        numProdutos++;
+        printw("\n\nProduto cadastrado com sucesso");
     } else {
-        printf("Opcao invalida. Tente novamente.\n");
+        printw("\n\nOperacao de cadastro cancelada.");
     }
+    pausa();
+}
+
+
+
+//----------------------------------------------------------------------------------------------------------
+
+// Consultar Produto 
+
+
+void consultarProduto() {
+    int id, index;
     
-    return main(); 
+    mostrarCabecalho("CONSULTAR PRODUTO");
+    
+    // Informa código 
+    echo();
+    printw("Digite o codigo do produto: ");
+    scanw("%d", &id);
+    noecho();
+
+
+
+    //Analisa produto 
+    index = buscarProdutoPorId(id);
+
+    if (index != -1) {
+        // Caso exista ele vai mostra os dados 
+        printw("\n--- DADOS DO PRODUTO ---\n");
+        printw("ID:        %d\n", listaProdutos[index].id);
+        printw("Descricao: %s\n", listaProdutos[index].descricao);
+        printw("Preco:     R$ %.2f\n", listaProdutos[index].preco);
+        printw("Estoque:   %d unidades\n", listaProdutos[index].estoque);
+    } else {
+        // Caso não exista da a sauda de erro 
+        printw("\nErro: Produto nao existe.\n");
+    }
+    pausa();
+}
+
+// funçao de remover o produto
+
+
+void removerProdutoInterface() {
+    int id, index;
+
+    mostrarCabecalho("REMOVER PRODUTO");
+
+    // pede o codigo do produto
+    echo();
+    printw("Digite o codigo do produto que vai  remover");
+    scanw("%d", &id);
+    noecho();
+
+   
+    index = buscarProdutoPorId(id); // vai pedir a funçao para verificar se o codigo existe ou nao
+
+    if (index == -1) {
+        // Caso nao exista retorna erro 
+        printw("\nErro: Produto nao existe.\n");
+    } else {
+        //  verifica se existe pedido com esse item
+        if (produtoEstaEmAlgumPedido(id)) {
+            // Caso exista pedido, informa que não pode excluir [cite: 151]
+            printw("\nErro: Produto nao pode ser excluido pois consta em pedidos de clientes.\n");
+        } else {
+            // Caso não exista pedidos, pede confirmação [cite: 152]
+            printw("\nProduto '%s' encontrado.", listaProdutos[index].descricao);
+            printw("\nTem certeza que deseja remover? (S/N): ");
+            int conf = getch();
+
+            if (toupper(conf) == 'S') {
+                // Confirmou: remove do cadastro [cite: 153]
+                for (int i = index; i < numProdutos - 1; i++) {
+                    listaProdutos[i] = listaProdutos[i+1];
+                }
+                numProdutos--;
+                printw("\nProduto removido com sucesso.\n");
+            } else {
+                // Não confirmou: produto mantido [cite: 153]
+                printw("\nOperacao cancelada. Produto mantido.\n");
+            }
+        }
+    }
+    pausa();
+}
+
+// Cenario: Listar Produto [cite: 158]
+void listarProdutos() {
+    mostrarCabecalho("LISTA DE PRODUTOS");
+
+    // Usuário solicita listagem [cite: 159]
+    // (A solicitação ocorreu ao selecionar a opção no menu)
+
+    if (numProdutos == 0) {
+        printw("Nenhum produto cadastrado.\n");
+    } else {
+        // Mostra listagem com todos os dados
+        printw("%-6s %-30s %-12s %-8s\n", "ID", "DESCRICAO", "PRECO", "QTD");
+        printw("------------------------------------------------------------\n");
+        
+        for(int i=0; i<numProdutos; i++) {
+            printw("%-6d %-30s R$ %-9.2f %-8d\n", 
+                listaProdutos[i].id, 
+                listaProdutos[i].descricao, 
+                listaProdutos[i].preco, 
+                listaProdutos[i].estoque);
+        }
+    }
+    pausa();
 }
