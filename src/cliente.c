@@ -1,381 +1,326 @@
-#include "cliente.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "feature_interface.h" // Importa ncurses e ferramentas visuais
+#include "feature_cliente.h"   // Importa a Struct Cliente
+#include <ctype.h>             // Para isdigit, toupper
 
-#define ARQUIVO "clientes.txt"
+#define ARQUIVO_CLIENTES "data/Clientes.csv"
+#define MAX_CLIENTES 100
 
-struct Cliente {
-    char codigo[20];
-    char nome[50];
-    char endereco[100];
-    char telefone[15];
-    char documento[20];
-    char tipo; // 'F' = CPF, 'J' = CNPJ
-    char email[50];
-};
-
-struct Cliente clientes[100];
+// --- BANCO DE DADOS EM MEMÓRIA ---
+Cliente listaClientes[MAX_CLIENTES];
 int numClientes = 0;
 
-//Funcap para cadastrar cliente
-int cadastrarCliente(struct Cliente clientes[], int *numClientes, struct Cliente novo) {
-    if (*numClientes >= 100) return -11;
-    for (int i = 0; i < *numClientes; i++) {
-        if (strcmp(clientes[i].codigo, novo.codigo) == 0) return 1;
+// ==============================================================================
+// 1. FUNÇÕES DE VALIDAÇÃO (Lógica Matemática e de Negócio)
+// ==============================================================================
+
+// Auxiliar: Verifica se tem apenas números
+int validarDigitos(const char *str) {
+    if (strlen(str) == 0) return 0;
+    for (int i = 0; i < strlen(str); i++) {
+        if (!isdigit((unsigned char)str[i])) return 0;
     }
-    clientes[*numClientes] = novo;
-    (*numClientes)++;
+    return 1;
+}
+
+// Verifica se o Código já existe no vetor
+int codigoExiste(const char *codigo) {
+    for (int i = 0; i < numClientes; i++) {
+        if (strcmp(listaClientes[i].codigo, codigo) == 0) return 1;
+    }
     return 0;
 }
-//Funcao para validar CPF
+
+// Verifica se o Documento (CPF/CNPJ) já existe no vetor
+int documentoExiste(const char *doc) {
+    for (int i = 0; i < numClientes; i++) {
+        if (strcmp(listaClientes[i].documento, doc) == 0) return 1;
+    }
+    return 0;
+}
+
+// Algoritmo Matemático de CPF
 int validarCPF(const char *cpf) {
     int i, j, digito1 = 0, digito2 = 0;
-    // Verifica tamanho
     if (strlen(cpf) != 11) return 0;
+    if (!validarDigitos(cpf)) return 0;
 
-    // Verifica se todos os caracteres são dígitos
-    for (i = 0; i < 11; i++) {
-        if (!isdigit((unsigned char)cpf[i])) return 0;
-    }
-    // Verifica se todos os dígitos são iguais (CPF inválido)
     int todosIguais = 1;
     for (i = 1; i < 11; i++) {
-        if (cpf[i] != cpf[0]) {
-            todosIguais = 0;
-            break;
-        }
+        if (cpf[i] != cpf[0]) { todosIguais = 0; break; }
     }
     if (todosIguais) return 0;
 
-    // Calcula primeiro dígito verificador
-    for (i = 0, j = 10; i < 9; i++, j--) {
-        digito1 += (cpf[i] - '0') * j;
-    }
+    for (i = 0, j = 10; i < 9; i++, j--) digito1 += (cpf[i] - '0') * j;
     digito1 = (digito1 * 10) % 11;
     if (digito1 == 10) digito1 = 0;
 
-    // Calcula segundo dígito verificador
-    for (i = 0, j = 11; i < 10; i++, j--) {
-        digito2 += (cpf[i] - '0') * j;
-    }
+    for (i = 0, j = 11; i < 10; i++, j--) digito2 += (cpf[i] - '0') * j;
     digito2 = (digito2 * 10) % 11;
     if (digito2 == 10) digito2 = 0;
 
-    // Retorna 1 se válido, 0 se inválido
     return (digito1 == (cpf[9] - '0') && digito2 == (cpf[10] - '0'));
 }
-// Funcao para validar CNPJ
-int validarCNPJ(const char *cnpj) { 
+
+// Algoritmo Matemático de CNPJ
+int validarCNPJ(const char *cnpj) {
     int i, digito1 = 0, digito2 = 0;
     int pesos1[12] = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
     int pesos2[13] = {6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
+    
     if (strlen(cnpj) != 14) return 0;
-    for (i = 0; i < 14; i++) {
-        if (cnpj[i] < '0' || cnpj[i] > '9') return 0;
-    }
-    for (i = 0; i < 12; i++) {
-        digito1 += (cnpj[i] - '0') * pesos1[i];
-    }
+    if (!validarDigitos(cnpj)) return 0;
+
+    for (i = 0; i < 12; i++) digito1 += (cnpj[i] - '0') * pesos1[i];
     digito1 = digito1 % 11;
     digito1 = (digito1 < 2) ? 0 : 11 - digito1;
-    for (i = 0; i < 13; i++) {
-        digito2 += (cnpj[i] - '0') * pesos2[i];
-    }
+
+    for (i = 0; i < 13; i++) digito2 += (cnpj[i] - '0') * pesos2[i];
     digito2 = digito2 % 11;
     digito2 = (digito2 < 2) ? 0 : 11 - digito2;
+
     return (digito1 == (cnpj[12] - '0') && digito2 == (cnpj[13] - '0'));
 }
-// Funcao para validar telefone
-int verificarTelefone(const char *telefone) {
-    int len = strlen(telefone);
-    if (len < 10 || len > 15) return 0;
-    for (int i = 0; i < len; i++)
-        if (!(isdigit((unsigned char)telefone[i]) || telefone[i]=='+' || telefone[i]=='-' || telefone[i]==' ')) return 0;
-    return 1;
-}
-// Funcao para validar email
+
+// Validação simples de Email
 int validarEmail(const char *email) {
-    int atCount = 0; // Contador de ocorrências do caractere '@'
-    int dotCount = 0; // Contador de ocorrências do caractere '.'
-    int i;  // Variável de iteração
-    int len = strlen(email); // Calcula o tamanho da string 'email'
-    for (i = 0; i < len; i++) { // perorre por cada caractere da string
+    int atCount = 0, dotCount = 0;
+    for (int i = 0; i < strlen(email); i++) {
         if (email[i] == '@') atCount++;
         if (email[i] == '.') dotCount++;
     }
-    return (atCount == 1 && dotCount >= 1); // deve ter exatamente um '@' e pelo menos um '.'
+    return (atCount == 1 && dotCount >= 1);
 }
-//Funcao para salvar cliente em arquivo
-int salvarCliente(const char *codigo, const char *nome, const char *endereco, const char *telefone, const char *cpf, const char *cnpj, const char *tipo, const char *email) {
-    FILE *arquivo = fopen(ARQUIVO, "a");
-    if(arquivo == NULL) {
-        printf("Erro ao abrir o arquivo '%s': %s\n", ARQUIVO, strerror(errno));
-        return -6;
+
+// ==============================================================================
+// 2. FUNÇÕES DE PERSISTÊNCIA (Carregar e Salvar CSV)
+// ==============================================================================
+
+void carregarClientesCSV() {
+    FILE *f = fopen(ARQUIVO_CLIENTES, "r");
+    if (!f) return;
+    
+    char linha[512];
+    numClientes = 0;
+    while(fgets(linha, sizeof(linha), f) && numClientes < MAX_CLIENTES) {
+        Cliente c;
+        // Parse manual do CSV: codigo;nome;endereco;telefone;documento;tipo;email
+        char *token = strtok(linha, ";"); if(token) strcpy(c.codigo, token);
+        token = strtok(NULL, ";"); if(token) strcpy(c.nome, token);
+        token = strtok(NULL, ";"); if(token) strcpy(c.endereco, token);
+        token = strtok(NULL, ";"); if(token) strcpy(c.telefone, token);
+        token = strtok(NULL, ";"); if(token) strcpy(c.documento, token);
+        token = strtok(NULL, ";"); if(token) c.tipo = token[0];
+        token = strtok(NULL, ";"); 
+        if(token) {
+            strcpy(c.email, token);
+            c.email[strcspn(c.email, "\n")] = 0; // Remove \n
+        }
+        listaClientes[numClientes++] = c;
     }
-    if (nome == NULL || nome[0] == '\0' || endereco == NULL || endereco[0] == '\0' || 
-        telefone == NULL || telefone[0] == '\0' || email == NULL || email[0] == '\0' || 
-        codigo == NULL || codigo[0] == '\0') {
-        printf("Erro: dados incompletos.\n");
-        fclose(arquivo);
-        return -1;
+    fclose(f);
+}
+
+void salvarClientesCSV() {
+    FILE *f = fopen(ARQUIVO_CLIENTES, "w");
+    if (!f) return;
+    
+    for(int i=0; i<numClientes; i++) {
+        fprintf(f, "%s;%s;%s;%s;%s;%c;%s\n", 
+            listaClientes[i].codigo, 
+            listaClientes[i].nome, 
+            listaClientes[i].endereco, 
+            listaClientes[i].telefone, 
+            listaClientes[i].documento, 
+            listaClientes[i].tipo,
+            listaClientes[i].email);
     }
-    fprintf(arquivo, "---------Dados do Cliente---------\n");
-    fprintf(arquivo, "Codigo: %s\n", codigo);
-    fprintf(arquivo, "Nome: %s\n", nome);
-    fprintf(arquivo, "Tipo: %s\n", tipo);
-    if (strcmp(tipo, "Pessoa fisica (CPF)") == 0) {
-        fprintf(arquivo, "CPF: %s\n", cpf);
+    fclose(f);
+}
+
+// ==============================================================================
+// 3. FUNÇÕES DE FORMULÁRIO (Telas Específicas do Cliente)
+// ==============================================================================
+
+void cadastrarCliente() {
+    Cliente c;
+    int valido = 0;
+    
+    mostrarCabecalho("CADASTRAR CLIENTE");
+    if (numClientes >= MAX_CLIENTES) {
+        printw("Erro: Limite de clientes atingido.\n");
+        pausa();
+        return;
+    }
+
+    echo(); // Habilita o usuário ver o que digita
+
+    // -- Validação do Código --
+    do {
+        printw("\nCodigo (apenas numeros): ");
+        getnstr(c.codigo, 19);
+        
+        if (!validarDigitos(c.codigo)) {
+            printw(" > Erro: Apenas numeros sao aceitos.\n");
+        } else if (codigoExiste(c.codigo)) {
+            printw(" > Erro: O codigo '%s' ja existe!\n", c.codigo);
+        } else {
+            valido = 1;
+        }
+    } while (!valido);
+
+    // -- Validação do Tipo --
+    valido = 0;
+    do {
+        printw("Tipo (F - Fisica / J - Juridica): ");
+        int ch = getch();
+        c.tipo = toupper(ch);
+        printw("%c\n", c.tipo); // Mostra o que foi digitado
+        
+        if (c.tipo == 'F' || c.tipo == 'J') valido = 1;
+        else printw(" > Erro: Use F ou J.\n");
+    } while(!valido);
+
+    // -- Validação do Documento (CPF/CNPJ) --
+    valido = 0;
+    do {
+        if (c.tipo == 'F') printw("CPF (11 digitos): ");
+        else printw("CNPJ (14 digitos): ");
+        
+        getnstr(c.documento, 19);
+
+        if (c.tipo == 'F') {
+            if (!validarCPF(c.documento)) printw(" > Erro: CPF invalido!\n");
+            else if (documentoExiste(c.documento)) printw(" > Erro: CPF ja cadastrado!\n");
+            else valido = 1;
+        } else {
+            if (!validarCNPJ(c.documento)) printw(" > Erro: CNPJ invalido!\n");
+            else if (documentoExiste(c.documento)) printw(" > Erro: CNPJ ja cadastrado!\n");
+            else valido = 1;
+        }
+    } while(!valido);
+
+    // -- Outros Dados --
+    printw("Nome Completo: ");
+    getnstr(c.nome, 49);
+
+    printw("Telefone: ");
+    getnstr(c.telefone, 14);
+
+    printw("Endereco: ");
+    getnstr(c.endereco, 99);
+
+    do {
+        printw("Email: ");
+        getnstr(c.email, 49);
+        if(!validarEmail(c.email)) printw(" > Erro: Email invalido.\n");
+    } while(!validarEmail(c.email));
+
+    noecho(); // Desabilita o echo
+
+    // -- Confirmação --
+    printw("\nSalvar cadastro? (S/N): ");
+    int confirm = getch();
+    if (toupper(confirm) == 'S') {
+        listaClientes[numClientes] = c;
+        numClientes++;
+        printw("\n\nCliente cadastrado com sucesso!");
     } else {
-        fprintf(arquivo, "CNPJ: %s\n", cnpj);
+        printw("\n\nCadastro cancelado.");
     }
-    fprintf(arquivo, "Telefone: %s\n", telefone);
-    fprintf(arquivo, "Endereco: %s\n", endereco);
-    fprintf(arquivo, "Email: %s\n", email);
-    fprintf(arquivo, "--------------------------\n\n");
-    fclose(arquivo);
-    printf("Dados salvos com sucesso.\n");
-    return 0;
+    
+    pausa();
 }
-// Funcao para consultar cliente por codigo
-int consultarCliente(struct Cliente clientes[], int numClientes, const char codigo[]) {
-    for (int i = 0; i < numClientes; i++) {
-        if (strcmp(clientes[i].codigo, codigo) == 0) {
-            printf("\n=== Dados do Cliente ===\n");
-            printf("Codigo: %s\n", clientes[i].codigo);
-            printf("Nome: %s\n", clientes[i].nome);
-            printf("Tipo: %s\n", (clientes[i].tipo == 'F') ? "CPF" : "CNPJ");
-            printf("Documento: %s\n", clientes[i].documento);
-            printf("Telefone: %s\n", clientes[i].telefone);
-            printf("Endereco: %s\n", clientes[i].endereco);
-            printf("Email: %s\n", clientes[i].email);
-            return i;
-        }
-    }
-    return -7;
-}
-//Funcao para remover cliente por codigo
-int removerCliente(struct Cliente clientes[], int *numClientes, const char codigo[]) {
-    int indice = consultarCliente(clientes, *numClientes, codigo);
-    if (indice == -7) return -8;
-    for (int i = indice; i < *numClientes - 1; i++) {
-        clientes[i] = clientes[i + 1];
-    }
-    (*numClientes)--;
-    return 0;
-}
-//Funcao para listar todos os clientes
-void listarClientes(struct Cliente clientes[], int numClientes) {
+
+void listarClientes() {
+    mostrarCabecalho("LISTA DE CLIENTES");
+    
     if (numClientes == 0) {
-        printf("Nenhum cliente cadastrado.\n");
-        return;
-    }
-    printf("\n=== Lista de Clientes Cadastrados ===\n");
-    for (int i = 0; i < numClientes; i++) {
-        printf("%d) Codigo: %s | Nome: %s\n", i+1, clientes[i].codigo, clientes[i].nome);
-    }
-}
-//Funcao para carregar clientes do arquivo na memoria
-void carregarClientesDoArquivo() {
-    FILE *arq = fopen(ARQUIVO, "r");
-    if (arq == NULL) {
-        printf("Arquivo nao existe ainda. Comecando com lista vazia.\n");
-        return;
-    }
-    
-    char linha[256];
-    struct Cliente temp;
-    memset(&temp, 0, sizeof(temp));
-    int lendo = 0;
-    
-    while (fgets(linha, sizeof(linha), arq) != NULL) {
-        if (strstr(linha, "Codigo:") != NULL) {
-            sscanf(linha, "Codigo: %s", temp.codigo);
-            lendo = 1;
-        }
-        else if (lendo && strstr(linha, "Nome:") != NULL) {
-            sscanf(linha, "Nome: %[^\n]", temp.nome);
-        }
-        else if (lendo && strstr(linha, "Telefone:") != NULL) {
-            sscanf(linha, "Telefone: %[^\n]", temp.telefone);
-        }
-        else if (lendo && strstr(linha, "Endereco:") != NULL) {
-            sscanf(linha, "Endereco: %[^\n]", temp.endereco);
-        }
-        else if (lendo && strstr(linha, "Email:") != NULL) {
-            sscanf(linha, "Email: %[^\n]", temp.email);
-        }
-        else if (lendo && strstr(linha, "CPF:") != NULL) {
-            sscanf(linha, "CPF: %s", temp.documento);
-            temp.tipo = 'F';
-        }
-        else if (lendo && strstr(linha, "CNPJ:") != NULL) {
-            sscanf(linha, "CNPJ: %s", temp.documento);
-            temp.tipo = 'J';
-        }
-        else if (lendo && strstr(linha, "--------------------------") != NULL) {
-            if (numClientes < 100) {
-                clientes[numClientes++] = temp;
-            }
-            memset(&temp, 0, sizeof(temp));
-            lendo = 0;
+        printw("Nenhum cliente cadastrado.\n");
+    } else {
+        // Cabeçalho da Tabela
+        printw("%-8s %-25s %-16s %-5s\n", "COD", "NOME", "DOC", "TIPO");
+        printw("--------------------------------------------------------\n");
+        
+        for (int i = 0; i < numClientes; i++) {
+            printw("%-8s %-25s %-16s %-5c\n", 
+                listaClientes[i].codigo, 
+                listaClientes[i].nome, 
+                listaClientes[i].documento, 
+                listaClientes[i].tipo);
         }
     }
-    fclose(arq);
-    printf("Clientes carregados do arquivo.\n");
+    pausa();
 }
 
-int codigoPrincipal() {
-    struct Cliente c;
-    char cadastro[32];
-    char tipo;
+void removerClienteInterface() {
     char codigo[20];
-    int resultado;
-    char opcao;
+    int index = -1;
 
-    carregarClientesDoArquivo();  // ADICIONE ESTA LINHA no inicio do main
-    
-     while (1) {
-        printf("\n=== Modulo Cliente ===\n");
-        printf("C/c - Cadastrar | O/o - Consultar | R/r - Remover | L/l - Listar | 0 - Sair\n");
-        printf("Escolha: ");
-        scanf(" %c", &opcao);
+    mostrarCabecalho("REMOVER CLIENTE");
+    echo();
+    printw("Digite o codigo do cliente a remover: ");
+    getnstr(codigo, 19);
+    noecho();
 
-        //Cadastrar cliente
-        if(opcao == 'C' || opcao == 'c') {
-           memset(&c, 0, sizeof(c)); // Zera a struct Cliente  // para evitar lixo de memória
-            do {
-                printf("Codigo: ");
-                if (scanf("%19s", c.codigo) != 1) return 0;
-                resultado = cadastrarCliente(clientes, &numClientes, c);
-                if (resultado == 1) printf("Codigo ja existe.\n");
-            } while (resultado != 0);
-
-            //Tipo de cliente F ou J
-            do{
-    printf(" F=  pessoa fisica (CPF) ou J=pessoa juridica (CNPJ): ");
-     scanf(" %c", &tipo);
-            } while (tipo != 'F' && tipo != 'f' && tipo != 'J' && tipo != 'j');
-            if (tipo == 'F' || tipo == 'f') {
-                do {
-                    printf("CPF (11 digitos, somente numeros): ");
-                    scanf("%31s", cadastro);
-                } while(!validarCPF(cadastro));
-                strcpy(c.documento, cadastro);
-                c.tipo = 'F';
-                printf("Nome: ");
-                scanf(" %49[^\n]", c.nome);
-                do {
-                    printf("Telefone: ");
-                    scanf(" %14[^\n]", c.telefone);
-                } while(!verificarTelefone(c.telefone));
-            } else {
-                do {
-                    printf("CNPJ (somente numero, 14 digitos): ");
-                    scanf("%31s", cadastro);
-                } while(!validarCNPJ(cadastro));
-                strcpy(c.documento, cadastro);
-                c.tipo = 'J';
-                printf("Nome empresa: ");
-                scanf(" %49[^\n]", c.nome);
-                do {
-                    printf("Telefone: ");
-                    scanf(" %14[^\n]", c.telefone);
-                } while(!verificarTelefone(c.telefone));
-            }
-
-            printf("Endereco: ");
-            scanf(" %99[^\n]", c.endereco);
-            do {
-                printf("Email: ");
-                scanf(" %49[^\n]", c.email);
-            } while (!validarEmail(c.email));
-//Cliente cadastrado
-printf("\n--- Dados do Cliente ---\n");
-    printf("Tipo: %s\n", (c.tipo == 'F'|| c.tipo== 'f') ? "Pessoa fisica (CPF)" : "Pessoa juridica (CNPJ)");
-    printf("Documento: %s  %s\n ", (c.tipo == 'F'|| c.tipo== 'f') ? "CPF" : "CNPJ", cadastro);
-    printf("Nome: %s\n", c.nome);
-    printf("Telefone: %s\n", c.telefone);
-    printf("Endereco: %s\n", c.endereco);
-    printf("Email: %s\n", c.email);
-
-     salvarCliente(c.codigo, c.nome, c.endereco, c.telefone,
-                         (c.tipo == 'F') ? c.documento : "",
-                         (c.tipo == 'J') ? c.documento : "",
-                         (c.tipo == 'F') ? "CPF" : "CNPJ",
-                         c.email);
-        }
-        //Consultar cliente
-        else if(opcao == 'O' || opcao == 'o') {
-            do{
-            printf("Codigo: ");
-            scanf("%19s", codigo);
-            resultado = consultarCliente(clientes, numClientes, codigo);
-            
-            if (resultado == -7) {
-                printf("Cliente nao encontrado na memoria.\n");
-                printf("Procurando no arquivo...\n\n");
-                
-                // Buscar no arquivo
-                FILE *arq = fopen(ARQUIVO, "r");
-                if (arq == NULL) {
-                    printf("Arquivo nao encontrado.\n");
-                } else {
-                    char linha[256];
-                    int encontrou = 0;
-                    
-                    while (fgets(linha, sizeof(linha), arq) != NULL) {
-                        // Procura por "Codigo: XXXX"
-                        if (strstr(linha, "Codigo:") != NULL && strstr(linha, codigo) != NULL) {
-                            printf("\n=== Dados do Cliente (do arquivo) ===\n");
-                            printf("%s", linha); // Imprime a linha "Codigo: XXXX"
-                            encontrou = 1;
-                            
-                            // Imprime as proximas linhas ate o separador
-                            while (fgets(linha, sizeof(linha), arq) != NULL) {
-                                if (strcmp(linha, "--------------------------\n") == 0) {
-                                    break;
-                                }
-                                printf("%s", linha);
-                            
-                            }
-                            break;
-                        }
-                    }
-                    fclose(arq);
-                    
-                    if (!encontrou) {
-                        printf("Cliente nao encontrado no arquivo.\n");
-                    }
-                }
-            } else {
-                printf("Cliente encontrado na memoria.\n");
-            }
-             } while(resultado!=0);
-        }
-        else if(opcao == 'R' || opcao == 'r'){
-            do{
-            printf("Codigo: ");
-            scanf("%19s", codigo);
-            resultado = removerCliente(clientes, &numClientes, codigo);  
-            if (resultado == -8)
-             printf("Nao encontrado.\n");
-             else printf("Removido.\n");
-            } while(resultado!=0);
-            
-        }
-        else if(opcao == 'L' || opcao == 'l'){
-            listarClientes(clientes, numClientes);  
-        }
-        else if(opcao == '0'){
-            printf("Saindo.\n");
+    // Busca o índice no vetor
+    for (int i = 0; i < numClientes; i++) {
+        if (strcmp(listaClientes[i].codigo, codigo) == 0) {
+            index = i;
             break;
         }
-        else printf("Invalido.\n");
     }
-    return 0;
 
+    if (index == -1) {
+        printw("\nErro: Cliente nao encontrado.\n");
+    } else {
+        printw("\nTem certeza que deseja remover '%s'? (S/N): ", listaClientes[index].nome);
+        int conf = getch();
+        if (toupper(conf) == 'S') {
+            // Remove deslocando elementos para a esquerda
+            for (int i = index; i < numClientes - 1; i++) {
+                listaClientes[i] = listaClientes[i+1];
+            }
+            numClientes--;
+            printw("\nCliente removido com sucesso.\n");
+        } else {
+            printw("\nOperacao cancelada.\n");
+        }
+    }
+    pausa();
 
- }
+    
+}
+// ... (outras funções acima)
+
+void consultarCliente() {
+    char codigo[20];
+    int index = -1;
+
+    mostrarCabecalho("CONSULTAR CLIENTE");
+    
+    echo();
+    printw("Digite o codigo do cliente: ");
+    getnstr(codigo, 19);
+    noecho();
+
+    // Busca no vetor
+    for (int i = 0; i < numClientes; i++) {
+        if (strcmp(listaClientes[i].codigo, codigo) == 0) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        printw("\nErro: Cliente nao encontrado.\n");
+    } else {
+        printw("\n--- DADOS DO CLIENTE ---\n");
+        printw("Codigo:    %s\n", listaClientes[index].codigo);
+        printw("Nome:      %s\n", listaClientes[index].nome);
+        printw("Documento: %s (%c)\n", listaClientes[index].documento, listaClientes[index].tipo);
+        printw("Telefone:  %s\n", listaClientes[index].telefone);
+        printw("Endereco:  %s\n", listaClientes[index].endereco);
+        printw("Email:     %s\n", listaClientes[index].email);
+    }
+    pausa();
+}
