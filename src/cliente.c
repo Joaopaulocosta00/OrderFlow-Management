@@ -5,15 +5,14 @@
 #define ARQUIVO_CLIENTES "data/Clientes.csv"
 #define MAX_CLIENTES 100
 
-// --- BANCO DE DADOS EM MEMÓRIA ---
+// BANCO DE DADOS EM MEMÓRIA
 Cliente listaClientes[MAX_CLIENTES];
 int numClientes = 0;
 
 // ==============================================================================
 // 1. FUNÇÕES DE VALIDAÇÃO (Lógica Matemática e de Negócio)
-// ==============================================================================
 
-// Auxiliar: Verifica se tem apenas números
+// Verifica se tem apenas números
 int validarDigitos(const char *str) {
     if (strlen(str) == 0) return 0;
     for (int i = 0; i < strlen(str); i++) {
@@ -22,7 +21,7 @@ int validarDigitos(const char *str) {
     return 1;
 }
 
-// Verifica se o Código já existe no vetor
+// Verifica se o Código já existe
 int codigoExiste(const char *codigo) {
     for (int i = 0; i < numClientes; i++) {
         if (strcmp(listaClientes[i].codigo, codigo) == 0) return 1;
@@ -30,7 +29,7 @@ int codigoExiste(const char *codigo) {
     return 0;
 }
 
-// Verifica se o Documento (CPF/CNPJ) já existe no vetor
+// Verifica se o Documento (CPF/CNPJ) já existe
 int documentoExiste(const char *doc) {
     for (int i = 0; i < numClientes; i++) {
         if (strcmp(listaClientes[i].documento, doc) == 0) return 1;
@@ -38,7 +37,7 @@ int documentoExiste(const char *doc) {
     return 0;
 }
 
-// Algoritmo Matemático de CPF
+// Validar CPF
 int validarCPF(const char *cpf) {
     int i, j, digito1 = 0, digito2 = 0;
     if (strlen(cpf) != 11) return 0;
@@ -61,7 +60,7 @@ int validarCPF(const char *cpf) {
     return (digito1 == (cpf[9] - '0') && digito2 == (cpf[10] - '0'));
 }
 
-// Algoritmo Matemático de CNPJ
+// Verificar CNPJ
 int validarCNPJ(const char *cnpj) {
     int i, digito1 = 0, digito2 = 0;
     int pesos1[12] = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
@@ -81,7 +80,7 @@ int validarCNPJ(const char *cnpj) {
     return (digito1 == (cnpj[12] - '0') && digito2 == (cnpj[13] - '0'));
 }
 
-// Validação simples de Email
+// Validação de Email
 int validarEmail(const char *email) {
     int atCount = 0, dotCount = 0;
     for (int i = 0; i < strlen(email); i++) {
@@ -93,7 +92,7 @@ int validarEmail(const char *email) {
 
 // ==============================================================================
 // 2. FUNÇÕES DE PERSISTÊNCIA (Carregar e Salvar CSV)
-// ==============================================================================
+
 
 void carregarClientesCSV() {
     FILE *f = fopen(ARQUIVO_CLIENTES, "r");
@@ -103,7 +102,7 @@ void carregarClientesCSV() {
     numClientes = 0;
     while(fgets(linha, sizeof(linha), f) && numClientes < MAX_CLIENTES) {
         Cliente c;
-        // Parse manual do CSV: codigo;nome;endereco;telefone;documento;tipo;email
+        // 
         char *token = strtok(linha, ";"); if(token) strcpy(c.codigo, token);
         token = strtok(NULL, ";"); if(token) strcpy(c.nome, token);
         token = strtok(NULL, ";"); if(token) strcpy(c.endereco, token);
@@ -137,9 +136,9 @@ void salvarClientesCSV() {
     fclose(f);
 }
 
-// ==============================================================================
-// 3. FUNÇÕES DE FORMULÁRIO (Telas Específicas do Cliente)
-// ==============================================================================
+//=============================================================================
+ //3. FUNÇÕES DE FORMULÁRIO (Telas Específicas do Cliente)
+
 
 void cadastrarCliente() {
     Cliente c;
@@ -152,7 +151,7 @@ void cadastrarCliente() {
         return;
     }
 
-    echo(); // Habilita o usuário ver o que digita
+    echo(); // usuário ver o que digita
 
     // -- Validação do Código --
     do {
@@ -230,7 +229,7 @@ void cadastrarCliente() {
     
     pausa();
 }
-
+// Listar clientes
 void listarClientes() {
     mostrarCabecalho("LISTA DE CLIENTES");
     
@@ -251,6 +250,7 @@ void listarClientes() {
     }
     pausa();
 }
+// Remover cliente
 
 void removerClienteInterface() {
     char codigo[20];
@@ -262,7 +262,7 @@ void removerClienteInterface() {
     getnstr(codigo, 19);
     noecho();
 
-    // Busca o índice no vetor
+    // Busca o cliente
     for (int i = 0; i < numClientes; i++) {
         if (strcmp(listaClientes[i].codigo, codigo) == 0) {
             index = i;
@@ -276,7 +276,7 @@ void removerClienteInterface() {
         printw("\nTem certeza que deseja remover '%s'? (S/N): ", listaClientes[index].nome);
         int conf = getch();
         if (toupper(conf) == 'S') {
-            // Remove deslocando elementos para a esquerda
+            // Remove 
             for (int i = index; i < numClientes - 1; i++) {
                 listaClientes[i] = listaClientes[i+1];
             }
@@ -290,7 +290,7 @@ void removerClienteInterface() {
 
     
 }
-// ... (outras funções acima)
+// Consultar cliente
 
 void consultarCliente() {
     char codigo[20];
@@ -303,7 +303,7 @@ void consultarCliente() {
     getnstr(codigo, 19);
     noecho();
 
-    // Busca no vetor
+    // Buscar cliente
     for (int i = 0; i < numClientes; i++) {
         if (strcmp(listaClientes[i].codigo, codigo) == 0) {
             index = i;
