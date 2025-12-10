@@ -1,9 +1,25 @@
+#ifndef FEATURE_PRODUTO_H
+#define FEATURE_PRODUTO_H
 
-//funçoes do de ppasrte de produto;
+// Estrutura do Produto
+typedef struct {
+    int id;
+    char descricao[100];
+    double preco;
+    int estoque;
+} Produto;
 
-int apagar_produto();
-int codigoExiste ();
-int novo_produto();
-void limpar_buffer();
-int modulo_produto();
-int modulo_novo_produto ();
+// Funcoes de arquivo
+void carregarProdutosCSV();
+void salvarProdutosCSV();
+
+// Funcoes que a interface precisa v o prototipos
+void cadastrarProduto();
+void consultarProduto();
+void removerProdutoInterface();
+void listarProdutos();
+
+// Auxiliares
+int buscarProdutoPorId(int id);
+
+#endif
