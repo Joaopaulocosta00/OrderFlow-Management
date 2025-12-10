@@ -1,4 +1,3 @@
-///
 #ifndef FEATURE_INTERFACE_H
 #define FEATURE_INTERFACE_H
 
@@ -13,8 +12,9 @@ void limparTela();
 void pausa();
 void mostrarCabecalho(const char* titulo);
 
-// Os menus de navegação
+//Menu
 int menuPrincipal();
-void mostrarMenuClientes(); 
+void mostrarMenuClientes();
+void mostrarMenuProdutos(); 
 
 #endif

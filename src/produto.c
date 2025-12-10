@@ -1,4 +1,4 @@
-#include "feature_interface.h" // ncurses e ferramentas visuais
+#include "feature_interface.h" // ncurses 
 #include "feature_produto.h"
 // #include "feature_pedido.h" // (modulo pedido.c - kauan )
 
@@ -8,7 +8,7 @@
 Produto listaProdutos[MAX_PRODUTOS];
 int numProdutos = 0;
 
-/
+
 // funcoesdo produto 
 // ==============================================================================
 
@@ -22,42 +22,38 @@ int buscarProdutoPorId(int id) {
     return -1;
 }
 
-// Simulação da verificação de pedidos (Requisito do cenário de Remover)
-// Como o módulo de pedidos ainda não está pronto, deixamos essa função preparada.
+// funçao para o kauan verificar se o produto esta em algum pedido
+
 int produtoEstaEmAlgumPedido(int id) {
-    // TODO: Quando criar o modulo de pedidos, implementar a busca real aqui.
-    // Por enquanto, retorna 0 (falso), permitindo excluir.
-    // Exemplo de lógica futura: if (buscarPedidoComProduto(id)) return 1;
+
     return 0; 
 }
 
-// ==============================================================================
-// PERSISTÊNCIA (CSV)
-// ==============================================================================
+
 
 void carregarProdutosCSV() {
-    FILE *f = fopen(ARQUIVO_PRODUTOS, "r");
-    if (!f) return; // Se não existe, inicia vazio
+    FILE *f = fopen(ARQUIVO_PRODUTOS, "r"); // tenta abrir no modo leitura 
+    if (!f) return; //
 
-    char linha[256];
-    numProdutos = 0;
-    while(fgets(linha, sizeof(linha), f) && numProdutos < MAX_PRODUTOS) {
-        // Parse CSV: id;descricao;preco;estoque
+    char linha[256]; 
+    numProdutos = 0;               // defini 0 para iniciar zerado
+    while(fgets(linha, sizeof(linha), f) && numProdutos < MAX_PRODUTOS) { // le uma linha do marquivo ate chegar no fim ou ate nmão  estourar (100)
+    
         char *token = strtok(linha, ";");
-        listaProdutos[numProdutos].id = atoi(token);
+        listaProdutos[numProdutos].id = atoi(token); //// o atoi vau converter o texto 10 para numero inteiro 10
+        
+        token = strtok(NULL, ";"); // vai coninuar cortando a linha
+        if(token) strcpy(listaProdutos[numProdutos].descricao, token); // strcpy' copia o texto para dentro da struct
         
         token = strtok(NULL, ";");
-        if(token) strcpy(listaProdutos[numProdutos].descricao, token);
+        if(token) listaProdutos[numProdutos].preco = atof(token); // 'atof vai converte texto para nnmero com vírgula o double
         
         token = strtok(NULL, ";");
-        if(token) listaProdutos[numProdutos].preco = atof(token);
+        if(token) listaProdutos[numProdutos].estoque = atoi(token); // vai coonverter para inteiro
         
-        token = strtok(NULL, ";");
-        if(token) listaProdutos[numProdutos].estoque = atoi(token);
-        
-        numProdutos++;
+        numProdutos++; // passa para a proxima posiçao do vetor
     }
-    fclose(f);
+    fclose(f); // fecha o arquivo
 }
 
 void salvarProdutosCSV() {
@@ -100,7 +96,7 @@ void cadastrarProduto() {
             //  Mensagem de erro e retorna para tela oara o usuario tentar outro codigo de produto 
             printw(" > Erro: Codigo %d ja existe. Tente outro.\n", p.id);
         } else {
-            idValido = 1; ?// aqui vai criar um loop ate o usuario digitar o codigo valido pro sistema
+            idValido = 1; // aqui vai criar um loop ate o usuario digitar o codigo valido pro sistema
         }
     } while (!idValido);
 
@@ -191,23 +187,23 @@ void removerProdutoInterface() {
     } else {
         //  verifica se existe pedido com esse item
         if (produtoEstaEmAlgumPedido(id)) {
-            // Caso exista pedido, informa que não pode excluir [cite: 151]
-            printw("\nErro: Produto nao pode ser excluido pois consta em pedidos de clientes.\n");
+            // Caso exista pedido informa que não pode excluir 
+            printw("\nErro: Produto nao pode ser excluido pois consta em pedidos de clientes.\n"); // kauan 
         } else {
-            // Caso não exista pedidos, pede confirmação [cite: 152]
+            // Caso não exista pedidos, pede confirmacao
             printw("\nProduto '%s' encontrado.", listaProdutos[index].descricao);
             printw("\nTem certeza que deseja remover? (S/N): ");
             int conf = getch();
 
             if (toupper(conf) == 'S') {
-                // Confirmou: remove do cadastro [cite: 153]
+                // se confirmar remove do cadastro 
                 for (int i = index; i < numProdutos - 1; i++) {
                     listaProdutos[i] = listaProdutos[i+1];
                 }
                 numProdutos--;
                 printw("\nProduto removido com sucesso.\n");
             } else {
-                // Não confirmou: produto mantido [cite: 153]
+                // Não confirmou,  produto mantido 
                 printw("\nOperacao cancelada. Produto mantido.\n");
             }
         }
@@ -215,22 +211,21 @@ void removerProdutoInterface() {
     pausa();
 }
 
-// Cenario: Listar Produto [cite: 158]
+// nfunão para listar todos os produtos
 void listarProdutos() {
     mostrarCabecalho("LISTA DE PRODUTOS");
 
-    // Usuário solicita listagem [cite: 159]
-    // (A solicitação ocorreu ao selecionar a opção no menu)
 
-    if (numProdutos == 0) {
+
+    if (numProdutos == 0) { // para voltar se nao tiver nenhum produto cadastrado
         printw("Nenhum produto cadastrado.\n");
     } else {
-        // Mostra listagem com todos os dados
+        // Mostra listagem com todos os dados 
         printw("%-6s %-30s %-12s %-8s\n", "ID", "DESCRICAO", "PRECO", "QTD");
         printw("------------------------------------------------------------\n");
         
-        for(int i=0; i<numProdutos; i++) {
-            printw("%-6d %-30s R$ %-9.2f %-8d\n", 
+        for(int i=0; i<numProdutos; i++) { // looop que vai roda de 0 até o total de produtos que tiver
+            printw("%-6d %-30s R$ %-9.2f %-8d\n", // // configura a formataçao visual das colunas
                 listaProdutos[i].id, 
                 listaProdutos[i].descricao, 
                 listaProdutos[i].preco, 

@@ -1,7 +1,7 @@
 #ifndef FEATURE_PRODUTO_H
 #define FEATURE_PRODUTO_H
 
-// Definicao da struct de   Produto
+// Estrutura do Produto
 typedef struct {
     int id;
     char descricao[100];
@@ -9,22 +9,17 @@ typedef struct {
     int estoque;
 } Produto;
 
-//..................................................................
-
-// Funções de Persistência
+// Funcoes de arquivo
 void carregarProdutosCSV();
 void salvarProdutosCSV();
 
-//...................................................................
-
-// Funcoes de interface 
-
+// Funcoes que a interface precisa v o prototipos
 void cadastrarProduto();
 void consultarProduto();
 void removerProdutoInterface();
 void listarProdutos();
 
-
-//int buscarProdutoPorId(int id); (modulo - pedido - kauan)
+// Auxiliares
+int buscarProdutoPorId(int id);
 
 #endif

@@ -6,18 +6,14 @@ typedef struct {
     char nome[50];
     char endereco[100];
     char telefone[15];
-    char documento[20];
-    char tipo;
+    char documento[20]; // CPF ou CNPJ
+    char tipo; // 'F' = CPF, 'J' = CNPJ
     char email[50];
 } Cliente;
 
+// Funções principais
 void carregarClientesCSV();
 void salvarClientesCSV();
-
-// Funcoes de Interface
-void cadastrarCliente();
-void listarClientes();
-void removerClienteInterface();
-void consultarCliente(); 
+void mostrarMenuClientes();
 
 #endif

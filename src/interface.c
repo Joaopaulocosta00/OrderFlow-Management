@@ -1,5 +1,6 @@
 #include "feature_interface.h"
-#include "feature_cliente.h" // chamar o cadastro/listagem
+#include "feature_cliente.h" // Necessário para o menu de clientes
+#include "feature_produto.h"
 
 void iniciarInterface() {
     initscr();
@@ -29,7 +30,7 @@ void mostrarCabecalho(const char* titulo) {
     printw("========================================\n");
 }
 
-// Menu Principal (Retorna a opção para o main)
+// interface do mernu principal 
 int menuPrincipal() {
     mostrarCabecalho("Bem vindo ao sistema");
     printw("1 - Gerenciar Clientes\n");
@@ -38,22 +39,22 @@ int menuPrincipal() {
     printw("\nEscolha: ");
     
     int opcao;
-    echo();
-    scanw("%d", &opcao);
-    noecho();
+    echo(); // vai liga a  escrita na tela 
+    scanw("%d", &opcao); // le o numero que o usuario digitou 
+    noecho();// desliga a escrita de pois de digitar para evitar que as teclas de navegacao apareça na tela
     
     return opcao;
 }
 
-// Menu de Clientes (Fica aqui conforme Diagrama pág. 12 do PDF)
+// Menu de Clientes
 void mostrarMenuClientes() {
     int opcao = -1;
     while(opcao != 0) {
         mostrarCabecalho("GESTAO DE CLIENTES");
         printw("1 - Cadastrar Cliente\n");
         printw("2 - Listar Clientes\n");
-        printw("3 - Consultar Cliente\n"); // <--- NOVA OPÇÃO
-        printw("4 - Remover Cliente\n");  // <--- MUDOU O NÚMERO
+        printw("3 - Consultar Cliente\n"); 
+        printw("4 - Remover Cliente\n");  
         printw("0 - Voltar ao Menu Principal\n");
         printw("\nEscolha: ");
         
@@ -64,7 +65,7 @@ void mostrarMenuClientes() {
         switch(opcao) {
             case 1: cadastrarCliente(); break;
             case 2: listarClientes(); break;
-            case 3: consultarCliente(); break; // <--- CHAMA A FUNÇÃO NOVA
+            case 3: consultarCliente(); break;
             case 4: removerClienteInterface(); break;
             case 0: break;
             default: printw("Opcao invalida!\n"); pausa(); break;
@@ -77,14 +78,14 @@ void mostrarMenuProdutos() {
         mostrarCabecalho("GESTAO DE PRODUTOS");
         printw("1 - Cadastrar Produto\n");
         printw("2 - Consultar Produto\n");
-        printw("3 - Remover Produto\n");
+        printw("3 - Remover Produto \n");
         printw("4 - Listar Produtos\n");
         printw("0 - Voltar ao Menu Principal\n");
         printw("\nEscolha: ");
         
-        echo();
-        scanw("%d", &opcao);
-        noecho();
+        echo(); //vai liga a  escrita na tela 
+        scanw("%d", &opcao); // le o n umero que o usuario digitou 
+        noecho(); // desligaa escrita de pois de digitar para evitar que as teclas de navegaçao apareçw na tela
 
         switch(opcao) {
             case 1: cadastrarProduto(); break;
