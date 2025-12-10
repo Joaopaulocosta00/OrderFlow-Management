@@ -1,3 +1,9 @@
+// ============================================================
+// MÓDULO DE PEDIDOS - SISTEMA DE CONTROLE
+// SOMENTE A PARTE DE PEDIDOS (Clientes e Produtos apenas validados)
+// Compilar: gcc modulo_pedidos.c -lncurses -o pedidos
+// ============================================================
+
 #include <ncurses.h>
 #include <string.h> 
 #include <stdlib.h> 
@@ -430,6 +436,11 @@ void remover_pedido(WINDOW *w) {
         remove(ARQ_PEDIDOS);
         rename("ped_tmp.csv", ARQ_PEDIDOS);
     }
+    fclose(fit);
+
+    // 4 — Registrar o pedido
+    data_atual(ped.data);
+    ped.total = total;
 
     msg(w, "Pedido removido e estoque estornado (Arquivos CSV atualizados).");
     pausa(w);
